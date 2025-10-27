@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function Navbar() {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+type SidebarProps = {
+    isCollapsed: boolean;
+    toggleSidebar: () => void;
+};
+export default function Navbar({ isCollapsed, toggleSidebar }: SidebarProps) {
+    
     const router = useRouter();
     return (
         <nav
@@ -66,7 +68,7 @@ export default function Navbar() {
 
         {/* Nút toggle */}
         <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={toggleSidebar}
             className="absolute top-1/2 -right-4 transform -translate-y-1/2 bg-indigo-600 text-white rounded-full shadow-md p-2 border border-white hover:scale-110 transition-all duration-300"
         >
             {isCollapsed ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}

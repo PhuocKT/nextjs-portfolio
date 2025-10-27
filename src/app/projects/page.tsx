@@ -8,11 +8,13 @@ export default function ProjectsPage() {
     const projects = [
         {
             title: "ToDo App",
+            icon: "📝",
             description: "Simple task management app built with Next.js",
             path: "/projects/todoapp",
         },
         {
             title: "Weather App",
+            icon: "⛅",
             description: "App to view weather forecasts by city using the OpenWeatherMap API",
             path: "/projects/weather",
         },
@@ -27,6 +29,7 @@ export default function ProjectsPage() {
             <div key={i} className="bg-white rounded-xl shadow p-5 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                 <div>
                 <h2 className="text-xl font-semibold text-gray-800">{p.title}</h2>
+                <span className="text-9xl ">{p.icon}</span>
                 <p className="text-gray-500 mt-2">{p.description}</p>
                 </div>
                 <button
