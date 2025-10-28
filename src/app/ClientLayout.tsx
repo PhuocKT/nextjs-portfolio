@@ -25,13 +25,14 @@ export default function ClientLayout({
 
         {/* 🟣 Main tự chiếm phần còn lại, mượt theo navbar */}
         <main
-            className={`flex-1 transition-all duration-500 ease-in-out bg-gradient-to-br from-sky-100 to-indigo-100 p-8 ${
-            isCollapsed ? "ml-8" : "ml-4"
+            className={`flex-1 transition-all duration-500 ease-in-out bg-gradient-to-br from-sky-100 to-indigo-100 ${
+            isCollapsed ? "ml-0" : "ml-0"
             }`}
         >
             {children}
             <Footer />
         </main>
         </div>
+        
     );
 }

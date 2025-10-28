@@ -15,7 +15,9 @@ type Todo = {
     finishedAt?: string;
     };
 
-export default function TodoApp() {
+    const API_URL = "http://localhost:3001/todos";
+
+    export default function TodoApp() {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [input, setInput] = useState("");
     const [priority, setPriority] = useState<"low" | "medium" | "high">("low");
@@ -24,108 +26,148 @@ export default function TodoApp() {
         "all" | "low" | "medium" | "high"
     >("all");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    // Load from localStorage
+    // ===== READ =====
     useEffect(() => {
-        const saved = localStorage.getItem("todos_v4");
-        if (saved) setTodos(JSON.parse(saved));
+        const fetchTodos = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(API_URL);
+            if (!res.ok) throw new Error("Failed to load todos");
+            const data: Todo[] = await res.json();
+            setTodos(data);
+
+        } catch (err) {
+            console.error("Move task error:", err);
+            toast.error("❌ Cannot load tasks from server!");
+        } finally {
+            setLoading(false);
+        }
+        };
+        fetchTodos();
     }, []);
 
-    // Save to localStorage
-    useEffect(() => {
-        localStorage.setItem("todos_v4", JSON.stringify(todos));
-    }, [todos]);
-
-    const handleBackToProjects = () => router.push("/projects");
-
-    // Add job
-    const handleAdd = () => {
+    // ===== CREATE =====
+    const handleAdd = async () => {
         const text = input.trim();
         if (!text) {
             setError("⚠️ You must enter a task name!");
             return;
         }
 
-        // ✅ Kiểm tra trùng tên (không phân biệt hoa thường)
         const isDuplicate = todos.some(
             (todo) => todo.text.toLowerCase() === text.toLowerCase()
         );
-
         if (isDuplicate) {
             setError("⚠️ This task already exists!");
             return;
         }
-
         setError("");
 
-        const newTodo: Todo = {
-            id: Date.now(),
-            text,
-            status: "todo",
-            priority,
-            createdAt: new Date().toLocaleString(),
+        const newTodo = {
+        text,
+        status: "todo",
+        priority,
+        createdAt: new Date().toISOString(),
         };
 
-        setTodos((prev) => [...prev, newTodo]);
-        toast.success("Task added successfully!");
+        try {
+        const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newTodo),
+        });
+        const created = await res.json();
+        setTodos((prev) => [...prev, created]);
         setInput("");
+        toast.success("✅ Task added successfully!");
+        } catch {
+        toast.error("❌ Failed to add task!");
+        }
     };
 
+    // ===== UPDATE (Move Next) =====
+    const moveNext = async (id: number) => {
+        const todo = todos.find((t) => t.id === id);
+        if (!todo) return;
 
-    // Move forward (Todo -> Doing -> Done)
-    const moveNext = (id: number) => {
+        let patchData = {};
+        if (todo.status === "todo")
+        patchData = { status: "doing", startedAt: new Date().toISOString() };
+        if (todo.status === "doing")
+        patchData = { status: "done", finishedAt: new Date().toISOString() };
+
+        try {
+        await fetch(`${API_URL}/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patchData),
+        });
         setTodos((prev) =>
-        prev.map((t) => {
-            if (t.id === id) {
-                if (t.status === "todo")
-                    return {
-                    ...t,
-                    status: "doing",
-                    startedAt: new Date().toLocaleString(),
-                    };
-                if (t.status === "doing")
-                    return {
-                    ...t,
-                    status: "done",
-                    finishedAt: new Date().toLocaleString(),
-                };
-            }
-            return t;
-        }));
+            prev.map((t) => (t.id === id ? { ...t, ...patchData } : t))
+        );
         toast("➡️ Task moved forward!");
+        } catch {
+            toast.error("❌ Failed to move task!");
+        }
     };
 
-    // Move back (Done -> Doing -> Todo)
-    const moveBack = (id: number) => {
-        setTodos((prev) =>
-        prev.map((t) => {
-            if (t.id === id) {
-                if (t.status === "doing") {
-                    // Reset started time
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    const { startedAt, ...rest } = t;
-                        return { ...rest, status: "todo" };
-                    }
-                    if (t.status === "done") {
-                        // Reset finished time
-                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                        const { finishedAt, ...rest } = t;
-                        return { ...rest, status: "doing" };
-                }
-            }
-            return t;
-        }));
-        toast("⬅️ Task moved back!");
+    // ===== UPDATE (Move Back) =====
+    const moveBack = async (id: number) => {
+        const todo = todos.find((t) => t.id === id);
+        if (!todo) return;
+
+        try {
+        if (todo.status === "doing") {
+            await fetch(`${API_URL}/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "todo", startedAt: null }),
+            });
+            setTodos((prev) =>
+            prev.map((t) =>
+                t.id === id
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                ? (({ startedAt, ...rest }: Todo) => ({ ...rest, status: "todo" }))(t)
+                : t
+            )
+            );
+            toast("⬅️ Task moved back to To-Do!");
+        } else if (todo.status === "done") {
+            await fetch(`${API_URL}/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "doing", finishedAt: null }),
+            });
+            setTodos((prev) =>
+            prev.map((t) =>
+                t.id === id
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                ? (({ finishedAt, ...rest }: Todo) => ({ ...rest, status: "doing" }))(t)
+                : t
+            )
+            );
+            toast("⬅️ Task moved back to Doing!");
+        }
+        } catch {
+            toast.error("❌ Failed to move back!");
+        }
     };
 
-    const handleDelete = (id: number) => {
-        setTodos((prev) => prev.filter((t) => t.id !== id));
-        toast.error("Task deleted!");
+    // ===== DELETE =====
+    const handleDelete = async (id: number) => {
+        try {
+            await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+            setTodos((prev) => prev.filter((t) => t.id !== id));
+            toast.error("🗑️ Task deleted!");
+        } catch {
+            toast.error("❌ Failed to delete!");
+        }
     };
 
-
-
+    // ===== Helper =====
     const getPriorityColor = (p: string) => {
         switch (p) {
         case "low":
@@ -139,57 +181,100 @@ export default function TodoApp() {
         }
     };
 
+    const filteredTodos = todos
+        .filter((t) => t.text.toLowerCase().includes(search.toLowerCase()))
+        .filter((t) =>
+        filterPriority === "all" ? true : t.priority === filterPriority
+        )
+        .sort((a, b) => {
+        const order = { high: 3, medium: 2, low: 1 };
+        return order[b.priority] - order[a.priority];
+        });
+
     const columns = [
         { title: "📝 To-Do", key: "todo" },
         { title: "⚙️ Doing", key: "doing" },
         { title: "✅ Done", key: "done" },
     ] as const;
 
-    // Filter + Search + Sort
-    const filteredTodos = todos
-        .filter((t) => t.text.toLowerCase().includes(search.toLowerCase()))
-        .filter((t) => (filterPriority === "all" ? true : t.priority === filterPriority))
-        .sort((a, b) => {
-        const order = { high: 3, medium: 2, low: 1 };
-        return order[b.priority] - order[a.priority];
-        });
+    function formatDateISO(iso?: string | null) {
+        if (!iso) return "";
+        try {
+            const dt = new Date(iso);
+            return new Intl.DateTimeFormat(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+            }).format(dt);
+        } catch {
+            return iso;
+        }
+    }
+
+    function timeAgo(iso?: string | null) {
+        if (!iso) return "";
+            const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (isNaN(seconds)) return "";
+            const intervals: [number, Intl.RelativeTimeFormatUnit][] = [
+                [60, "second"],
+                [60, "minute"],
+                [24, "hour"],
+                [7, "day"],
+                [4.34524, "week"],
+                [12, "month"],
+                [Number.POSITIVE_INFINITY, "year"],
+            ];
+        let value = seconds;
+        let unit: Intl.RelativeTimeFormatUnit = "second";
+        for (let i = 0; i < intervals.length; i++) {
+            const [limit, u] = intervals[i];
+            if (Math.abs(value) < limit) {
+                unit = u;
+                break;
+            }
+            value = Math.round(value / limit);
+        }
+        const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+        return rtf.format(-value, unit);
+    }
 
     return (
         <main className="ml-5 p-8 min-h-screen bg-gradient-to-br from-sky-100 to-indigo-100">
-        {/* Header */}
         <Toaster position="top-right" reverseOrder={false} />
         <button
-            onClick={handleBackToProjects}
-            className="bg-sky-300 hover:bg-sky-400 font-medium px-4 py-2 rounded-md mb-4 transition-all duration-200"
+            onClick={() => router.push("/projects")}
+            className="bg-sky-200 hover:bg-sky-300 font-medium px-4 py-2 rounded-md mb-4"
         >
             ◀️ Back
         </button>
 
         <div className="bg-white rounded-xl shadow p-6 mb-8">
-            {/* Unified Input + Search + Filter Row */}
             <div className="flex flex-wrap gap-3 items-center justify-between">
-                <h1 className="flex flex-wrap justify-start text-3xl font-bold text-indigo-600 mb-4 text-center">
+                <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">
                     To-Do App 🗂️
                 </h1>
-                <div className="flex flex-wrap justify-center gap-3 items-center flex-1 min-w-[280px]">
+
+                <div className="flex flex-wrap justify-center gap-3 items-center flex-1 ">
                     <div className="relative flex items-center w-full max-w-[400px]">
-                    <input
-                        type="text"
-                        placeholder="Type your job..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        className="border border-gray-300 bg-sky-100 rounded-md px-4 py-2 flex-1 min-w-[200px] max-w-[400px] pr-8"
-                    />
-                    {input && (
-                        <button
-                        onClick={() => setInput("")}
-                        className="absolute right-2 text-gray-500 hover:text-red-500"
-                        title="Clear"
-                        >
-                        ❌
-                        </button>
-                    )}
-                </div>
+                        <input
+                            type="text"
+                            placeholder="Type your job..."
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            className="border border-gray-300 bg-sky-100 rounded-md px-4 py-2 flex-1 pr-8"
+                        />
+                        {input && (
+                            <button
+                            onClick={() => setInput("")}
+                            className="absolute right-2 text-gray-500 hover:text-red-500"
+                            >
+                            ❌
+                            </button>
+                        )}
+                    </div>
                     <select
                     value={priority}
                     onChange={(e) =>
@@ -203,31 +288,29 @@ export default function TodoApp() {
                     </select>
                     <button
                     onClick={handleAdd}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-md"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
                     >
                     Add
                     </button>
-                    
                 </div>
 
-                <div className="flex flex-wrap gap-3 items-center min-w-[280px] justify-end">
+                <div className="flex flex-wrap gap-3 items-center justify-end">
                     <div className="relative flex items-center w-fit">
-                        <input
-                            type="text"
-                            placeholder="🔍 Search..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2 w-[180px] pr-8"
-                        />
-                        {search && (
-                            <button
-                            onClick={() => setSearch("")}
-                            className="absolute right-2 text-gray-500 hover:text-red-500"
-                            title="Clear search"
-                            >
-                            ❌
-                            </button>
-                        )}
+                    <input
+                        type="text"
+                        placeholder="🔍 Search..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2 w-[180px] pr-8"
+                    />
+                    {search && (
+                        <button
+                        onClick={() => setSearch("")}
+                        className="absolute right-2 text-gray-500 hover:text-red-500"
+                        >
+                        ❌
+                        </button>
+                    )}
                     </div>
                     <select
                     value={filterPriority}
@@ -236,7 +319,7 @@ export default function TodoApp() {
                         e.target.value as "all" | "low" | "medium" | "high"
                         )
                     }
-                    className="border border-gray-300 bg-sky-100 font-medium rounded-md px-3 py-2"
+                    className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2"
                     >
                     <option value="all">All</option>
                     <option value="high">High</option>
@@ -245,11 +328,13 @@ export default function TodoApp() {
                     </select>
                 </div>
             </div>
-
-            {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
+            {error && (
+            <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
+            )}
         </div>
 
         {/* Kanban Columns */}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {columns.map((col) => {
             const list = filteredTodos.filter((t) => t.status === col.key);
@@ -258,12 +343,20 @@ export default function TodoApp() {
                 key={col.key}
                 className="bg-white rounded-xl shadow p-4 min-h-[400px] flex flex-col"
                 >
+                
                 <h2 className="text-xl font-bold text-indigo-600 mb-3">
                     {col.title}
                 </h2>
+                {loading && <p className="text-gray-500 mt-4 text-center">⏳ Loading...</p>}
                 {list.length === 0 ? (
                     <div className="text-gray-400 italic text-center mt-10">
-                    <Image src="/notthing.webp" alt="No items" className="mx-auto mb-4 object-contain" width={200} height={200} />
+                    <Image
+                        src="/notthing.webp"
+                        alt="No items"
+                        className="mx-auto mb-4 object-contain"
+                        width={300}
+                        height={200}
+                    />
                     <p>No tasks here!</p>
                     </div>
                 ) : (
@@ -291,9 +384,9 @@ export default function TodoApp() {
                         </div>
 
                         <div className="text-xs text-gray-500 mt-2 space-y-1">
-                            <p>🕒 Created: {todo.createdAt}</p>
-                            {todo.startedAt && <p>🚀 Started: {todo.startedAt}</p>}
-                            {todo.finishedAt && <p>🏁 Finished: {todo.finishedAt}</p>}
+                            <p>🕒 Created: {formatDateISO(todo.createdAt)} {todo.createdAt && <span>• {timeAgo(todo.createdAt)}</span>}</p>
+                            {todo.startedAt && <p>🚀 Started: {formatDateISO(todo.startedAt)} {todo.startedAt && <span>• {timeAgo(todo.startedAt)}</span>}</p>}
+                            {todo.finishedAt && <p>🏁 Finished: {formatDateISO(todo.finishedAt)} {todo.finishedAt && <span>• {timeAgo(todo.finishedAt)}</span>}</p>}
                         </div>
 
                         <div className="flex justify-end mt-3 space-x-2">

@@ -5,7 +5,7 @@ export default function Home() {
     const router = useRouter();
 
     return (
-        <main className="ml-60 flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800 p-10 transition-all duration-500">
+        <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800 p-10 transition-all duration-500">
         <section className="max-w-3xl text-center">
             <h1 className="text-5xl font-bold mb-4">Hi, my name is <span className="text-indigo-600">Phước</span> 👋</h1>
             <p className="text-lg text-gray-600 mb-8">

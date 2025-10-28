@@ -1,41 +1,63 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌟 Next.js Portfolio
 
-## Getting Started
+A personal learning project built with **Next.js 14 (App Router)**, demonstrating modern React practices and real-world project structure.
 
-First, run the development server:
+This project includes multiple small apps — such as a **To-Do App** with full CRUD operations — to help practice and understand how Next.js works.
 
+---
+
+## 🚀 Features
+
+### 🗂️ To-Do App
+- Built with **Next.js**, **TypeScript**, and **TailwindCSS**
+- Supports full **CRUD** operations using a fake database (**JSON Server**)
+- Local and server state synchronization
+- Priority-based task sorting (`Low`, `Medium`, `High`)
+- Search and filter by task name or priority
+- Animated UI with toast notifications (via `react-hot-toast`)
+
+---
+
+## 🧰 Tech Stack
+
+- **Next.js 14** (App Router)
+- **React 18**
+- **TypeScript**
+- **TailwindCSS**
+- **JSON Server** (Fake REST API)
+- **React Hot Toast** (Notification)
+- **ESLint + Prettier** (Code quality)
+
+---
+
+## ⚙️ Getting Started
+
+### 1️⃣ Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+npm install
+2️⃣ Run the development server
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    npm run dev
+    The app will be available at http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3️⃣ Start the fake API server
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+npx json-server --watch db.json --port 3001
+Make sure db.json exists at the project root.
+Example db.json:
 
-## Learn More
+{
+  "todos": []
+}
+🧑‍💻 Development Structure
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# nextjs-portfolio
-my build nextjs
->>>>>>> 653c662c3d4ef5fa7cce4421a10907bfc4c7b377
+src/
+ ├─ app/
+ │   ├─ page.tsx              → Home page
+ │   ├─ projects/
+ │   │   └─ todoapp/
+ │   │        └─ page.tsx     → To-Do App page
+ │   └─ globals.css           → Global styles
+ ├─ components/               → (optional shared UI)
+ ├─ public/                   → static assets (images, icons)
+ └─ db.json                   → JSON Server database
