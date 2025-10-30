@@ -21,7 +21,7 @@ export default function ProjectsPage() {
     ];
 
     return (
-        <main className="ml-60 p-8 min-h-screen bg-gray-50">
+        <main className=" p-8 min-h-screen bg-sky-100">
         <h1 className="text-3xl font-bold mb-6 text-indigo-600">My Projects</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

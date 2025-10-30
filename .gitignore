@@ -32,7 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-
+mongodb+srv://phuocnguyen01_db_user:60Mamv6qeG0ucqkw@cluster0.nl6ecxx.mongodb.net/
 # vercel
 .vercel
 

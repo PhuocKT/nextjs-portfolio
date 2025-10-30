@@ -6,17 +6,18 @@ import Image from "next/image";
 import toast, { Toaster } from "react-hot-toast";
 
 type Todo = {
-    id: number;
+    _id?: string;
+    id?: string;
     text: string;
     status: "todo" | "doing" | "done";
     priority: "low" | "medium" | "high";
     createdAt: string;
-    startedAt?: string;
-    finishedAt?: string;
-    };
+    startedAt?: string | null;
+    finishedAt?: string | null;
+};
 
-    const API_URL = "http://localhost:3001/todos";
-
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/todos";
+    
     export default function TodoApp() {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [input, setInput] = useState("");
@@ -89,34 +90,38 @@ type Todo = {
     };
 
     // ===== UPDATE (Move Next) =====
-    const moveNext = async (id: number) => {
-        const todo = todos.find((t) => t.id === id);
-        if (!todo) return;
+    const moveNext = async (id: string) => {
+    const todo = todos.find((t) => t._id === id);
+    if (!todo) return;
 
-        let patchData = {};
-        if (todo.status === "todo")
-        patchData = { status: "doing", startedAt: new Date().toISOString() };
-        if (todo.status === "doing")
-        patchData = { status: "done", finishedAt: new Date().toISOString() };
+    let updateData = {};
+    if (todo.status === "todo") {
+        updateData = { status: "doing", startedAt: new Date().toISOString() };
+    } else if (todo.status === "doing") {
+        updateData = { status: "done", finishedAt: new Date().toISOString() };
+    }
 
-        try {
-        await fetch(`${API_URL}/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(patchData),
+    try {
+        const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
         });
-        setTodos((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, ...patchData } : t))
-        );
-        toast("➡️ Task moved forward!");
-        } catch {
-            toast.error("❌ Failed to move task!");
-        }
-    };
+
+        if (!res.ok) throw new Error("Failed to update task");
+
+        const updated = await res.json();
+        setTodos((prev) => prev.map((t) => (t._id === id ? updated : t)));
+        toast.success("➡️ Task moved forward!");
+    } catch (err) {
+        console.error("Move task error:", err);
+        toast.error("❌ Failed to move task!");
+    }
+};
 
     // ===== UPDATE (Move Back) =====
-    const moveBack = async (id: number) => {
-        const todo = todos.find((t) => t.id === id);
+    const moveBack = async (id: string) => {
+        const todo = todos.find((t) => t._id === id);
         if (!todo) return;
 
         try {
@@ -128,7 +133,7 @@ type Todo = {
             });
             setTodos((prev) =>
             prev.map((t) =>
-                t.id === id
+                t._id === id
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 ? (({ startedAt, ...rest }: Todo) => ({ ...rest, status: "todo" }))(t)
                 : t
@@ -143,7 +148,7 @@ type Todo = {
             });
             setTodos((prev) =>
             prev.map((t) =>
-                t.id === id
+                t._id === id
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 ? (({ finishedAt, ...rest }: Todo) => ({ ...rest, status: "doing" }))(t)
                 : t
@@ -157,10 +162,10 @@ type Todo = {
     };
 
     // ===== DELETE =====
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         try {
             await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-            setTodos((prev) => prev.filter((t) => t.id !== id));
+            setTodos((prev) => prev.filter((t) => t._id !== id));
             toast.error("🗑️ Task deleted!");
         } catch {
             toast.error("❌ Failed to delete!");
@@ -258,13 +263,13 @@ type Todo = {
                 </h1>
 
                 <div className="flex flex-wrap justify-center gap-3 items-center flex-1 ">
-                    <div className="relative flex items-center w-full max-w-[400px]">
+                    <div className="relative flex flex-wrap items-center w-full max-w-[350px]">
                         <input
                             type="text"
                             placeholder="Type your job..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            className="border border-gray-300 bg-sky-100 rounded-md px-4 py-2 flex-1 pr-8"
+                            className="border border-gray-300 bg-sky-100 rounded-md px-4 py-2 flex-1 pr-8 min-w-fit"
                         />
                         {input && (
                             <button
@@ -363,7 +368,7 @@ type Todo = {
                     <div className="space-y-3">
                     {list.map((todo) => (
                         <div
-                        key={todo.id}
+                        key={todo._id}
                         className={`border rounded-md p-3 shadow-sm ${
                             todo.status === "done"
                             ? "bg-green-50"
@@ -392,7 +397,7 @@ type Todo = {
                         <div className="flex justify-end mt-3 space-x-2">
                             {todo.status !== "todo" && (
                             <button
-                                onClick={() => moveBack(todo.id)}
+                                onClick={() => moveBack(todo._id!)}
                                 className="bg-sky-200 hover:bg-sky-300 text-black text-sm px-3 py-1 rounded"
                             >
                                 ⬅ Back
@@ -400,14 +405,14 @@ type Todo = {
                             )}
                             {todo.status !== "done" ? (
                             <button
-                                onClick={() => moveNext(todo.id)}
+                                onClick={() => moveNext(todo._id!)}
                                 className="bg-indigo-500 hover:bg-indigo-600 text-white text-sm px-3 py-1 rounded"
                             >
                                 Move →
                             </button>
                             ) : (
                             <button
-                                onClick={() => handleDelete(todo.id)}
+                                onClick={() => handleDelete(todo._id!)}
                                 className="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded"
                             >
                                 Delete
