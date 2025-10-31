@@ -18,6 +18,12 @@ export default function ProjectsPage() {
             description: "App to view weather forecasts by city using the OpenWeatherMap API",
             path: "/projects/weather",
         },
+        {
+            title: "Dashboard App",
+            icon: "📊",
+            description: "App to view chart of task flowwing to do app",
+            path: "/projects/dashboard",
+        },
     ];
 
     return (

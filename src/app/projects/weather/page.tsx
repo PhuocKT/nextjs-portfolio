@@ -112,19 +112,19 @@ type WeatherData = {
         return (
             <main className=" p-8 min-h-screen bg-gradient-to-br from-sky-100 to-indigo-100">
             {/* 🔙 Nút quay lại */}
-            <div className="flex gap-96">
+            <div className="relative flex items-center justify-center">
                 <button
-                onClick={handleBack}
-                className="bg-sky-300 hover:bg-sky-400 font-medium px-4 py-2 rounded-md mb-4 "
-            >
-                ◀️ Back
-            </button>
+                    onClick={handleBack}
+                    className="absolute left-0 bg-sky-300 hover:bg-sky-400 font-medium px-4 py-2 rounded-md mb-4"
+                >
+                    ◀️ Back
+                </button>
 
-            {/* Tiêu đề */}
-            <h1 className="text-3xl font-bold text-indigo-700 mb-6 ml-56 text-center">
-                Weather App 🌤️
-            </h1>
+                <h1 className="text-3xl font-bold text-indigo-700 mb-2 text-center">
+                    Weather App 🌤️
+                </h1>
             </div>
+
 
             {/* ======================= TÌM KIẾM ======================= */}
             <div className="flex space-x-2 mb-4 justify-center">

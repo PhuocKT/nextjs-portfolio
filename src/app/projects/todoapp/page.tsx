@@ -249,95 +249,106 @@ type Todo = {
     return (
         <main className="ml-5 p-8 min-h-screen bg-gradient-to-br from-sky-100 to-indigo-100">
         <Toaster position="top-right" reverseOrder={false} />
-        <button
+        <div className="flex justify-between">
+            <button
             onClick={() => router.push("/projects")}
-            className="bg-sky-200 hover:bg-sky-300 font-medium px-4 py-2 rounded-md mb-4"
+            className="bg-sky-300 hover:bg-sky-400 font-medium px-4 py-2 rounded-md mb-4"
         >
             ◀️ Back
         </button>
-
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-                <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">
+        <h1 className="text-3xl font-bold text-indigo-600 mb-4 text-center">
                     To-Do App 🗂️
-                </h1>
-
-                <div className="flex flex-wrap justify-center gap-3 items-center flex-1 ">
-                    <div className="relative flex flex-wrap items-center w-full max-w-[350px]">
-                        <input
-                            type="text"
-                            placeholder="Type your job..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            className="border border-gray-300 bg-sky-100 rounded-md px-4 py-2 flex-1 pr-8 min-w-fit"
-                        />
-                        {input && (
-                            <button
-                            onClick={() => setInput("")}
-                            className="absolute right-2 text-gray-500 hover:text-red-500"
-                            >
-                            ❌
-                            </button>
-                        )}
-                    </div>
-                    <select
-                    value={priority}
-                    onChange={(e) =>
-                        setPriority(e.target.value as "low" | "medium" | "high")
-                    }
-                    className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2"
-                    >
-                    <option value="low">🟢 Low</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="high">🔴 High</option>
-                    </select>
-                    <button
-                    onClick={handleAdd}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
-                    >
-                    Add
-                    </button>
-                </div>
-
-                <div className="flex flex-wrap gap-3 items-center justify-end">
-                    <div className="relative flex items-center w-fit">
-                    <input
-                        type="text"
-                        placeholder="🔍 Search..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2 w-[180px] pr-8"
-                    />
-                    {search && (
-                        <button
-                        onClick={() => setSearch("")}
-                        className="absolute right-2 text-gray-500 hover:text-red-500"
-                        >
-                        ❌
-                        </button>
-                    )}
-                    </div>
-                    <select
-                    value={filterPriority}
-                    onChange={(e) =>
-                        setFilterPriority(
-                        e.target.value as "all" | "low" | "medium" | "high"
-                        )
-                    }
-                    className="border border-gray-300 bg-sky-100 rounded-md px-3 py-2"
-                    >
-                    <option value="all">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                    </select>
-                </div>
-            </div>
-            {error && (
-            <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
-            )}
+        </h1>
+        <button
+            onClick={() => router.push("/projects/dashboard")}
+            className="bg-sky-300 hover:bg-sky-400 font-medium px-4 py-2 rounded-md mb-4"
+        >
+            ▶️ DashBoard
+        </button>
         </div>
+        <div className="flex flex-wrap justify-between items-center gap-4 bg-white rounded-2xl shadow-md p-6 mb-8">
+        {/* --- Left: Input + Priority + Add button --- */}
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+            {/* Input */}
+            <div className="relative flex items-center flex-1 max-w-[350px]">
+            <input
+                type="text"
+                placeholder="Type your task..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className={`w-full border rounded-lg px-4 py-2 pr-10 text-gray-700 placeholder-gray-400 
+                    ${error ? "border-red-400 bg-red-50 focus:ring-red-300" : "border-gray-300 bg-sky-50 focus:ring-indigo-300"} 
+                    focus:ring-2 focus:outline-none transition-all`}
+            />
+            {input && (
+                <button
+                onClick={() => setInput("")}
+                className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                ❌
+                </button>
+            )}
+            </div>
 
+            {/* Priority select */}
+            <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
+            className="border border-gray-300 bg-sky-50 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none transition-all"
+            >
+            <option value="low">🟢 Low</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="high">🔴 High</option>
+            </select>
+
+            {/* Add button */}
+            <button
+            onClick={handleAdd}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg shadow-sm transition-all"
+            >
+            🛫 Add
+            </button>
+        </div>
+            {error && (
+                <p className="text-sm text-red-500 mt-1 ml-1">{error}</p>
+            )}
+        {/* --- Right: Search + Filter --- */}
+        <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex items-center">
+            <input
+                type="text"
+                placeholder="🔍 Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border border-gray-300 bg-sky-50 rounded-lg px-4 py-2 pr-10 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-indigo-300 focus:outline-none transition-all w-[180px]"
+            />
+            {search && (
+                <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                ❌
+                </button>
+            )}
+            </div>
+
+            {/* Filter */}
+            <select
+            value={filterPriority}
+            onChange={(e) =>
+                setFilterPriority(e.target.value as "all" | "low" | "medium" | "high")
+            }
+            className="border border-gray-300 bg-sky-50 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none transition-all"
+            >
+            <option value="all">All</option>
+            <option value="high">🔴 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+            </select>
+        </div>
+        </div>
+        
         {/* Kanban Columns */}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
