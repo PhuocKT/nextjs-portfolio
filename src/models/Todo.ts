@@ -1,35 +1,16 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
-export interface ITodo extends Document {
-    text: string;
-    status: "todo" | "doing" | "done";
-    priority: "low" | "medium" | "high";
-    createdAt: Date;
-    startedAt?: Date;
-    finishedAt?: Date;
-    }
-
-    // 🔧 Định nghĩa Schema
-    const TodoSchema = new Schema<ITodo>(
+const TodoSchema = new Schema(
     {
-        text: { type: String, required: true, unique: true },
-        status: {
-        type: String,
-        enum: ["todo", "doing", "done"],
-        default: "todo",
-        },
-        priority: {
-        type: String,
-        enum: ["low", "medium", "high"],
-        default: "low",
-        },
-        createdAt: { type: Date, default: Date.now },
-        startedAt: Date,
-        finishedAt: Date,
+        text: { type: String, required: true },
+        status: { type: String, enum: ["todo", "doing", "done"], default: "todo" },
+        priority: { type: String, enum: ["low", "medium", "high"], default: "low" },
+        createdAt: { type: Date, default: () => new Date() },
+        startedAt: { type: Date, default: null },
+        finishedAt: { type: Date, default: null },
+        userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     },
     { timestamps: true }
-    );
+);
 
-    // ⚙️ Nếu Model tồn tại, dùng lại (tránh lỗi khi reload)
-    export const Todo: Model<ITodo> =
-    mongoose.models.Todo || mongoose.model<ITodo>("Todo", TodoSchema);
+export const Todo = models.Todo || model("Todo", TodoSchema);
