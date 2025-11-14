@@ -282,7 +282,7 @@ type Todo = {
     }
     
     return (
-        <main className="ml-5 p-8 min-h-screen bg-gradient-to-br from-sky-100 to-indigo-100">
+        <main className="ml-5 p-8 min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100">
         <Toaster position="top-right" />
         <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-indigo-600">To-Do App 🗂️</h1>

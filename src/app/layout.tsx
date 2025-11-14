@@ -1,3 +1,4 @@
+import { UserProvider } from "@/context/UserContext";
 import "./globals.css";
 import ClientLayout from "@/app/ClientLayout";
 
@@ -14,7 +15,8 @@ export const metadata = {
     return (
         <html lang="en">
         <body>
-            <ClientLayout>{children}</ClientLayout>
+            <UserProvider><ClientLayout>{children}</ClientLayout></UserProvider>
+            
         </body>
         </html>
     );

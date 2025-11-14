@@ -53,9 +53,9 @@ export default function AdminDashboardPage() {
       <Toaster />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-indigo-700">📊 Admin Dashboard</h1>
-        <div className="space-x-2">
-          <Button onClick={() => router.push("/projects/dashboard/tasks")}>Tasks</Button>
-          <Button onClick={() => router.push("/projects/dashboard/users")}>Users</Button>
+        <div className=" w-64 space-x-2 flex">
+          <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-xl text-white transition-colors" onClick={() => router.push("/projects/dashboard/tasks")}>Tasks</Button>
+          <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-xl text-white transition-colors" onClick={() => router.push("/projects/dashboard/users")}>Users</Button>
         </div>
       </div>
 

@@ -2,13 +2,22 @@
     import { connectDB } from "@/lib/mongodb";
     import { Todo } from "@/models/Todo";
 
-    export async function PUT(req: Request, { params }: { params: { id: string } }) {
+    export async function PUT(
+    req: Request,
+    context: { params: Promise<{ id: string }> }
+    ) {
     try {
         await connectDB();
-        const { id } = params;
+        const { id } = await context.params;
         const body = await req.json();
-        const updated = await Todo.findByIdAndUpdate(id, { ...body }, { new: true }).populate("userId", "name email").lean();
-        if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+        const updated = await Todo.findByIdAndUpdate(id, body, {
+        new: true,
+        }).lean();
+
+        if (!updated)
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+
         return NextResponse.json(updated);
     } catch (err) {
         console.error(err);
@@ -16,13 +25,22 @@
     }
     }
 
-    export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+    export async function PATCH(
+    req: Request,
+    context: { params: Promise<{ id: string }> }
+    ) {
     try {
         await connectDB();
-        const { id } = params;
+        const { id } = await context.params;
         const body = await req.json();
-        const updated = await Todo.findByIdAndUpdate(id, { ...body }, { new: true }).populate("userId", "name email").lean();
-        if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+        const updated = await Todo.findByIdAndUpdate(id, body, {
+        new: true,
+        }).lean();
+
+        if (!updated)
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+
         return NextResponse.json(updated);
     } catch (err) {
         console.error(err);
@@ -30,12 +48,18 @@
     }
     }
 
-    export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+    export async function DELETE(
+    _req: Request,
+    context: { params: Promise<{ id: string }> }
+    ) {
     try {
         await connectDB();
-        const { id } = params;
+        const { id } = await context.params;
+
         const deleted = await Todo.findByIdAndDelete(id).lean();
-        if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        if (!deleted)
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+
         return NextResponse.json({ message: "Deleted" });
     } catch (err) {
         console.error(err);
