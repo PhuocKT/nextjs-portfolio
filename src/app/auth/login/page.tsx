@@ -63,12 +63,7 @@ export default function LoginPage() {
                     priority={true}
                     className="opacity-70"
                 />
-                <div className="absolute z-10 p-10 text-white text-center">
-                    <h1 className="text-4xl font-bold mb-3">HAYWORK GLOBAL</h1>
-                    <p className="text-indigo-200">
-                        Access your work dashboard and check-in status here.
-                    </p>
-                </div>
+                
             </div>
 
             {/* RIGHT COLUMN: LOGIN FORM */}
