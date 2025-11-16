@@ -3,7 +3,7 @@ import "./globals.css";
 import ClientLayout from "@/app/ClientLayout";
 
 export const metadata = {
-    title: "Phước Portfolio",
+    title: "Tracking app",
     description: "My personal portfolio built with Next.js",
     };
 

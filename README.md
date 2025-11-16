@@ -1,63 +1,49 @@
-# 🌟 Next.js Portfolio
+# ✨ Tracking App – Internal Task & User Management System
 
-A personal learning project built with **Next.js 14 (App Router)**, demonstrating modern React practices and real-world project structure.
+[![Vercel Deployment Status](https://vercel-badge-server.vercel.app/api/badge/nextjs-tracking?branch=main)](https://nextjs-tracking.vercel.app/)
 
-This project includes multiple small apps — such as a **To-Do App** with full CRUD operations — to help practice and understand how Next.js works.
-
----
-
-## 🚀 Features
-
-### 🗂️ To-Do App
-- Built with **Next.js**, **TypeScript**, and **TailwindCSS**
-- Supports full **CRUD** operations using a fake database (**JSON Server**)
-- Local and server state synchronization
-- Priority-based task sorting (`Low`, `Medium`, `High`)
-- Search and filter by task name or priority
-- Animated UI with toast notifications (via `react-hot-toast`)
+> A robust internal task tracking platform designed for centralized management. It allows Administrators to monitor and assign tasks to Users, built on the powerful foundation of the Next.js App Router.
 
 ---
 
-## 🧰 Tech Stack
+## 🚀 Key Features
 
-- **Next.js 14** (App Router)
-- **React 18**
-- **TypeScript**
-- **TailwindCSS**
-- **JSON Server** (Fake REST API)
-- **React Hot Toast** (Notification)
-- **ESLint + Prettier** (Code quality)
+This project evolved from a learning application into a full-fledged management system with **Role-Based Access Control (RBAC)**:
+
+### 💼 User Management & Roles
+* **Secure Authentication:** Safe login procedures using **JWT** (JSON Web Tokens) and **bcrypt** for password hashing.
+* **Role-Based Access:** Only **Admins** can create new user accounts and access the comprehensive Management Dashboard. User registration is disabled.
+* **User CRUD:** Administrators have full control to Create, Read, Update, and Delete user accounts.
+
+### 📋 Task Management
+* **Personal To-Do List:** Assigned users can view and work on their specific tasks.
+* **Status Updates:** Users can update the status of their assigned tasks (e.g., Pending, In Progress, Completed).
+
+### 📈 Admin Dashboard
+* **Overview:** A dedicated dashboard provides a complete overview of task progress and user performance metrics.
+* **Tracking & Assignment:** Admins can monitor the tasks assigned to each user and their current status.
+
+---
+
+## 🧰 Tech Stack & Architecture
+
+The project utilizes a modern technology stack for high performance and scalability:
+
+| Category | Technology/Library | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | **Next.js 15 (App Router)** | High performance, Server Components, and Routing. |
+| **Frontend** | **React 19, TailwindCSS** | Building a responsive and flexible user interface. |
+| **Database** | **MongoDB** | Flexible and scalable NoSQL database. |
+| **Data Layer** | **Mongoose** | **ODM** (Object Data Modeling) for seamless interaction with MongoDB. |
+| **Security** | **JWT, bcrypt/bcryptjs** | User session authentication and password hashing. |
+| **UI** | **Shadcn/ui (via Radix-ui)** | High-quality, customizable UI components. |
 
 ---
 
 ## ⚙️ Getting Started
 
-### 1️⃣ Install dependencies
-```bash
-npm install
-2️⃣ Run the development server
+To get the project running locally, you must set up the required environment variables and start the Node.js application.
 
-    npm run dev
-    The app will be available at http://localhost:3000
+### 1. Set Up Environment Variables
 
-3️⃣ Start the fake API server
-
-npx json-server --watch db.json --port 3001
-Make sure db.json exists at the project root.
-Example db.json:
-
-{
-  "todos": []
-}
-🧑‍💻 Development Structure
-
-src/
- ├─ app/
- │   ├─ page.tsx              → Home page
- │   ├─ projects/
- │   │   └─ todoapp/
- │   │        └─ page.tsx     → To-Do App page
- │   └─ globals.css           → Global styles
- ├─ components/               → (optional shared UI)
- ├─ public/                   → static assets (images, icons)
- └─ db.json                   → JSON Server database
+Create a file named `.env.local` in the project root directory and populate it with the following variables:
