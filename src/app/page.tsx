@@ -4,14 +4,14 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-// Note: Ensure the path to UserContext is correct
 import { useUser, User } from "@/context/UserContext"; 
+import Image from "next/image"; // Added Image import
 
 // Helper component for status display (Moved outside of HomePage for cleanliness)
 const StatusItem = ({ label, time, color }: { label: string, time: string | null | undefined, color: string }) => (
-    <div className="p-3 bg-white rounded-md shadow-sm">
+    <div className="p-4 bg-white rounded-lg shadow-md border border-gray-100 text-center">
         <p className="font-medium text-gray-500 text-sm">{label}:</p>
-        <p className={`font-semibold text-xl mt-1 ${color}`}>
+        <p className={`font-extrabold text-2xl mt-1 ${color}`}>
             {time 
                 ? new Date(time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) 
                 : "N/A"}
@@ -20,7 +20,6 @@ const StatusItem = ({ label, time, color }: { label: string, time: string | null
 );
 
 export default function HomePage() {
-    // ✅ Use Context State to get/set user data across pages
     const { user, setUser, isLoading } = useUser(); 
     const [isChecking, setIsChecking] = useState(false);
 
@@ -32,7 +31,9 @@ export default function HomePage() {
 
     if (!user)
         return (
-            <p className="text-center mt-10 text-red-500">Please log in to use this feature.</p>
+            <p className="text-center mt-10 text-red-500">
+                <a href="/auth/login" className="underline text-blue-600">Please log in</a> to use this feature.
+            </p>
         );
 
     // Helpers
@@ -47,7 +48,7 @@ export default function HomePage() {
         user.checkOutTime &&
         new Date(user.checkOutTime).toDateString() === today;
 
-    // ========== Handle Check In ==========
+    // ... (handleCheckIn and handleCheckOut functions remain the same)
     const handleCheckIn = async () => {
         if (hasCheckedInToday)
             return toast.error("❌ You have already Checked In today!");
@@ -63,19 +64,16 @@ export default function HomePage() {
 
         toast.success("✅ Check In successful!");
 
-        // ✅ IMPORTANT: Update the Context State to immediately reflect changes
-        // This ensures the status is preserved when navigating away and back.
         setUser(prevUser => {
             if (!prevUser) return null;
             return {
                 ...prevUser,
                 checkInTime: new Date().toISOString(),
-                checkOutTime: null, // Reset Check Out on new Check In
+                checkOutTime: null,
             } as User;
         });
     };
 
-    // ========== Handle Check Out ==========
     const handleCheckOut = async () => {
         if (!hasCheckedInToday)
             return toast.error("❌ You must Check In first!");
@@ -94,7 +92,6 @@ export default function HomePage() {
 
         toast.success("⏰ Check Out successful!");
 
-        // ✅ IMPORTANT: Update the Context State to immediately reflect changes
         setUser(prevUser => {
             if (!prevUser) return null;
             return {
@@ -103,24 +100,45 @@ export default function HomePage() {
             } as User;
         });
     };
+    // ... (End of handle functions)
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100 p-4">
-
+        <div className="flex min-h-[calc(100vh-4rem)] p-8"> {/* Adjusted min-h for new fixed header (h-16 = 4rem) */}
             <Toaster position="top-right" />
+            
+            {/* LEFT COLUMN: IMAGE / MOTIVATIONAL */}
+            <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-indigo-50 rounded-xl p-12 shadow-inner border border-indigo-100 mr-8">
+                <div className="text-center">
+                    {/* Placeholder for the main office image or a related graphic */}
+                    <Image
+                        src="/logo.jpg"
+                        alt="HAYWORK Global Building"
+                        width={400}
+                        height={300}
+                        priority={true}
+                        className="rounded-lg shadow-xl mb-6"
+                    />
+                    <h2 className="text-3xl font-bold text-indigo-700">
+                        Focus on Impact.
+                    </h2>
+                    <p className="text-gray-500 mt-2">
+                        Your dedication drives our global success.
+                    </p>
+                </div>
+            </div>
 
-            <div className="w-full max-w-md bg-white shadow-xl rounded-xl p-8 border border-indigo-100">
-
-                <h1 className="text-3xl font-extrabold text-indigo-700 mb-2 text-center">
+            {/* RIGHT COLUMN: CHECK IN/OUT UI */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-white shadow-2xl rounded-xl p-10 border border-indigo-200">
+                <h1 className="text-4xl font-extrabold text-indigo-700 mb-2 text-center">
                     👋 Welcome, {user.name}!
                 </h1>
 
-                <p className="text-gray-500 mb-6 text-center">
+                <p className="text-gray-500 mb-6 text-center text-lg">
                     **Today:** {today}
                 </p>
 
                 {/* Admin / User navigation - Card */}
-                <div className="mb-8 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
+                <div className="mb-8 p-4 w-full bg-indigo-50 border border-indigo-200 rounded-lg text-center">
                     {user.role === "admin" ? (
                         <Button
                             onClick={() => (window.location.href = "/projects/dashboard")}
@@ -133,22 +151,21 @@ export default function HomePage() {
                             onClick={() => (window.location.href = "/projects/todoapp")}
                             className="w-full bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
                         >
-                            📝 Go to Todo App Page
+                            📝 Go to Project Page
                         </Button>
                     )}
                 </div>
 
                 {/* Check In / Check Out UI */}
-                <div className="flex gap-4 justify-center mb-8">
-
+                <div className="flex gap-4 justify-center w-full mb-8">
                     {/* CHECK IN BUTTON */}
                     <Button
                         disabled={hasCheckedInToday || isChecking}
                         onClick={handleCheckIn}
-                        className={`flex-1 transition-colors ${
+                        className={`flex-1 h-12 text-lg font-semibold transition-colors ${
                             hasCheckedInToday 
-                                ? "bg-green-500 hover:bg-green-600 text-white cursor-not-allowed" 
-                                : "bg-indigo-500 hover:bg-indigo-600 text-white"
+                                ? "bg-green-600 hover:bg-green-700 text-white cursor-not-allowed" 
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white"
                         }`}
                     >
                         {isChecking ? "Processing..." : hasCheckedInToday ? "✔ Checked In" : "✅ Check In"}
@@ -158,10 +175,10 @@ export default function HomePage() {
                     <Button
                         disabled={!hasCheckedInToday || hasCheckedOutToday || isChecking}
                         onClick={handleCheckOut}
-                        className={`flex-1 transition-colors ${
+                        className={`flex-1 h-12 text-lg font-semibold transition-colors ${
                             hasCheckedOutToday 
-                                ? "bg-red-500 hover:bg-red-600 text-white cursor-not-allowed" 
-                                : "bg-indigo-500 hover:bg-indigo-600 text-white"
+                                ? "bg-red-600 hover:bg-red-700 text-white cursor-not-allowed" 
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white"
                         }`}
                     >
                         {isChecking ? "Processing..." : hasCheckedOutToday ? "✔ Checked Out" : "⏰ Check Out"}
@@ -169,19 +186,19 @@ export default function HomePage() {
                 </div>
 
                 {/* Status Box */}
-                <div className="mt-4 bg-indigo-50 shadow p-6 rounded-lg text-center border border-indigo-200">
-                    <p className="font-bold text-indigo-700 mb-3 text-lg">📅 Today's Work Status:</p>
+                <div className="mt-4 bg-indigo-50 shadow p-6 rounded-lg text-center w-full border border-indigo-200">
+                    <p className="font-bold text-indigo-700 mb-4 text-xl">📅 Today's Time Log:</p>
 
                     <div className="grid grid-cols-2 gap-4">
                         <StatusItem 
-                            label="Check In" 
+                            label="Check In Time" 
                             time={user.checkInTime} 
-                            color="text-green-600" 
+                            color="text-green-700" 
                         />
                         <StatusItem 
-                            label="Check Out" 
+                            label="Check Out Time" 
                             time={user.checkOutTime} 
-                            color="text-red-600" 
+                            color="text-red-700" 
                         />
                     </div>
                 </div>

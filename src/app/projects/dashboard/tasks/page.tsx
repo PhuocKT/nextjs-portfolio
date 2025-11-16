@@ -117,7 +117,7 @@ export default function TasksPage() {
         <div className="p-8 min-h-screen bg-gray-50">
             <div className="flex justify-between items-center mb-6 pb-4 border-b">
                 <h1 className="text-3xl font-extrabold text-indigo-700">📝 Task Management (Admin)</h1>
-                <Button className="bg-gray-400 hover:bg-gray-500 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
+                <Button className="bg-indigo-500 hover:bg-indigo-600 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
             </div>
 
             {/* ✅ FILTER & SEARCH SECTION - TỐI ƯU */}
@@ -128,8 +128,8 @@ export default function TasksPage() {
                         Task Filters & Search
                     </div>
                     {/* Clear Button (Icon Only) */}
-                    <Button onClick={handleClearFilters} size="icon" className="bg-red-500 hover:bg-red-600 h-8 w-8">
-                        <Trash2 className="w-4 h-4" />
+                    <Button onClick={handleClearFilters} size="icon" className="bg-gray-500 hover:bg-gray-400 h-10 w-10 px-8 py-4">
+                        Clear
                     </Button>
                 </div>
                 

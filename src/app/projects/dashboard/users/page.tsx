@@ -90,7 +90,7 @@ export default function UsersPage() {
         <div className="p-8 min-h-screen bg-gray-50">
             <div className="flex justify-between items-center mb-6 pb-4 border-b">
                 <h1 className="text-3xl font-extrabold text-indigo-700">👤 User Management (Admin)</h1>
-                <Button className="bg-gray-400 hover:bg-gray-500 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
+                <Button className="bg-indigo-500 hover:bg-indigo-600 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
             </div>
 
             {/* ✅ KHỐI LỌC/TÌM KIẾM ĐƯA LÊN TRÊN */}
@@ -127,8 +127,8 @@ export default function UsersPage() {
                     
                     {/* Clear Filters */}
                     <Button onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }}
-                            className="bg-red-500 hover:bg-red-600 flex items-center justify-center">
-                        <Trash2 className="w-5 h-5" />
+                            className="bg-gray-500 hover:bg-gray-400 flex items-center justify-center h-10 w-10 px-8 py-4">
+                        Clear
                     </Button>
                 </div>
             </Card>

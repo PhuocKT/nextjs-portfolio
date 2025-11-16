@@ -1,38 +1,36 @@
 "use client";
 
-import { useState } from "react";
+// 1. Bỏ 'useState'
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function ClientLayout({
     children,
-    }: {
+}: {
     children: React.ReactNode;
-    }) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const toggleSidebar = () => setIsCollapsed((prev) => !prev);
+}) {
+    // 2. Bỏ state 'isCollapsed' và hàm 'toggleSidebar'
+    // const [isCollapsed, setIsCollapsed] = useState(false);
+    // const toggleSidebar = () => setIsCollapsed((prev) => !prev);
 
     return (
-        <div className="flex min-h-screen transition-all duration-500 ease-in-out">
-        {/* 🟢 Navbar có width động */}
-        <div
-            className={`transition-all duration-500 ease-in-out ${
-            isCollapsed ? "w-20" : "w-60"
-            }`}
-        >
-            <Navbar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
-        </div>
+        // 3. Bỏ 'flex' ở đây, chuyển sang 'flex-col' để sắp xếp Header, Main, Footer
+        <div className="flex flex-col min-h-screen">
 
-        {/* 🟣 Main tự chiếm phần còn lại, mượt theo navbar */}
-        <main
-            className={`flex-1 transition-all duration-500 ease-in-out bg-gradient-to-br from-sky-100 to-indigo-100 ${
-            isCollapsed ? "ml-0" : "ml-0"
-            }`}
-        >
-            {children}
-            <Footer />
-        </main>
+            {/* 4. Render Navbar trực tiếp, không cần div bọc và không truyền props */}
+            <Navbar />
+
+            {/* 5. Chỉnh sửa Main:
+                - Bỏ 'flex-1' (đã có trên div cha)
+                - Bỏ các class 'transition-all'
+                - THÊM 'pt-16' (padding-top: 4rem) để đẩy nội dung xuống dưới Header (vì Header cao h-16)
+            */}
+            <main
+                className={`flex-1 pt-16 bg-gradient-to-br from-sky-100 to-indigo-100`}
+            >
+                {children}
+                <Footer />
+            </main>
         </div>
-        
     );
 }

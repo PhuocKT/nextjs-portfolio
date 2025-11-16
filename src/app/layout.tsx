@@ -13,11 +13,10 @@ export const metadata = {
     children: React.ReactNode;
     }) {
     return (
-        <html lang="en">
-        <body>
-            <UserProvider><ClientLayout>{children}</ClientLayout></UserProvider>
-            
-        </body>
+        <html lang="en" suppressHydrationWarning={true}>
+            <body>
+                <UserProvider><ClientLayout>{children}</ClientLayout></UserProvider>
+            </body>
         </html>
     );
 }

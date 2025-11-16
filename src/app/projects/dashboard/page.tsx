@@ -34,7 +34,8 @@ type Difficulty = {
 
 type OverviewResponse = {
     totalTodos: number;
-    totalUsers: number;
+    // Đã sửa: Tổng số người dùng hiện bao gồm cả Admin
+    totalUsers: number; 
     byStatus: { name: string; count: number }[];
     byPriority: { name: string; count: number }[];
     checkInOutData: { 
@@ -129,7 +130,8 @@ export default function AdminDashboardPage() {
                             <p className="text-4xl font-extrabold text-indigo-700 mt-1">{data.totalTodos}</p>
                         </Card>
                         <Card className="p-6 text-center shadow-lg border-l-4 border-blue-500">
-                            <p className="text-sm text-gray-500">Total Users (Non-Admin)</p>
+                            {/* ✅ ĐÃ SỬA TIÊU ĐỀ: Bao gồm tất cả người dùng */}
+                            <p className="text-sm text-gray-500">Total Members</p> 
                             <p className="text-4xl font-extrabold text-blue-700 mt-1">{data.totalUsers}</p>
                         </Card>
                     </div>
@@ -152,7 +154,7 @@ export default function AdminDashboardPage() {
                             </ResponsiveContainer>
                         </Card>
                         
-                        {/* Task Priority Chart (Đã đổi chỗ xuống đây) */}
+                        {/* Task Priority Chart */}
                         <Card className="p-6 shadow-xl">
                             <h3 className="text-xl font-semibold mb-4 text-orange-600">Task Priority Distribution</h3>
                             <ResponsiveContainer width="100%" height={300}>
@@ -174,7 +176,7 @@ export default function AdminDashboardPage() {
                             </ResponsiveContainer>
                         </Card>
                         
-                        {/* Difficulties List (Đã đổi chỗ lên vị trí này) */}
+                        {/* Difficulties List */}
                         <Card className="p-6 lg:col-span-2 shadow-xl">
                             <div className="flex justify-between items-center mb-4 border-b pb-2">
                                 <h3 className="text-xl font-semibold text-red-600">Difficulty Log by Date</h3>
@@ -214,16 +216,16 @@ export default function AdminDashboardPage() {
                             </div>
                         </Card>
                         
-                        {/* Recent Check In/Out Log  */}
+                        {/* Recent Check In/Out Log */}
                         <Card className="p-6 shadow-xl">
                             <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                <h3 className="text-xl font-semibold text-green-600">User Check-In/Out Log (Today's Date)</h3>
+                                <h3 className="text-xl font-semibold text-green-600">Member Check-In/Out Log</h3>
                                 <Button onClick={() => setCurrentDate(getTodayDate())} variant="outline" className="text-sm">
                                     Today
                                 </Button>
                             </div>
                             
-                            {/* Date Navigator  */}
+                            {/* Date Navigator */}
                             <div className="flex items-center justify-center space-x-4 mb-4 bg-gray-100 p-2 rounded-lg">
                                 <Button size="icon" onClick={() => handleDateChange(-1)} variant="outline">
                                     <ChevronLeft className="w-5 h-5" />
