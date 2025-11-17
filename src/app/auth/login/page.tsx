@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
     const router = useRouter();
-    const { setUser } = useUser(); 
+    // ✅ Lấy thêm refetchUser từ context
+    const { setUser, refetchUser } = useUser(); 
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -31,7 +32,13 @@ export default function LoginPage() {
 
             if (res.ok) {
                 toast.success("Login successful! Redirecting...");
+                
+                // Cập nhật state tạm thời từ response login (đã sửa ở file route.ts)
                 setUser(data.user); 
+                
+                // ✅ QUAN TRỌNG: Gọi refetchUser để đảm bảo UserContext đồng bộ 
+                // hoàn toàn dữ liệu mới nhất từ server (cookie vừa được set)
+                await refetchUser();
 
                 if (data.user && data.user.role === "admin") {
                     router.push("/"); 
@@ -42,6 +49,7 @@ export default function LoginPage() {
                 toast.error(data.error || "Login failed.");
                 setIsLoading(false);
             }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("An error occurred. Please try again.");
             setIsLoading(false);
@@ -55,15 +63,14 @@ export default function LoginPage() {
             {/* LEFT COLUMN: IMAGE */}
             <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-indigo-700 relative">
                 <Image
-                    // Use a relevant, high-resolution image for the background
                     src="/haywork.jpg" 
                     alt="HAYWORK GLOBAL Office Building"
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     priority={true}
                     className="opacity-70"
                 />
-                
             </div>
 
             {/* RIGHT COLUMN: LOGIN FORM */}

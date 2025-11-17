@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import toast from "react-hot-toast";
-import { Search, Filter, Calendar, User, Trash2, Tag, ListTodo } from 'lucide-react'; // Import icons
+import { Search, Filter, Calendar, User, Trash2, Tag, ListTodo, Edit, Save, X } from 'lucide-react'; // Import icons
 
 interface Todo {
     _id: string;
     text: string;
     status: "todo" | "doing" | "done";
     priority: "low" | "medium" | "high";
+    // Đảm bảo userId có thể là object hoặc undefined (như khi lấy từ API)
     userId?: { _id: string; name: string; email: string };
     createdAt?: string;
 }
@@ -22,13 +23,22 @@ interface User {
     role: "user" | "admin";
 }
 
-// ... (fetchAll, handleSubmit functions remain the same) ...
+// Interface cho form chỉnh sửa (userId phải là string ID)
+interface EditForm extends Omit<Partial<Todo>, 'userId'> {
+    userId?: string; 
+}
+
+
 export default function TasksPage() {
     const router = useRouter();
     const [allTodos, setAllTodos] = useState<Todo[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [form, setForm] = useState({ text: "", status: "todo", priority: "low", userId: "" });
     
+    // TRẠNG THÁI CHỈNH SỬA
+    const [isEditing, setIsEditing] = useState<string | null>(null); // Lưu _id của task đang chỉnh sửa
+    const [editForm, setEditForm] = useState<EditForm>({}); // Form cho task đang chỉnh sửa
+
     // TRẠNG THÁI LỌC
     const [filterUser, setFilterUser] = useState<string>(""); 
     const [filterDate, setFilterDate] = useState<string>(""); 
@@ -47,7 +57,8 @@ export default function TasksPage() {
             const tJson: Todo[] = await tRes.json();
             const uJson: User[] = await uRes.json();
             setAllTodos(tJson);
-            setUsers(uJson.filter((u) => u.role !== "admin"));
+            // Lọc ra admin vì chỉ muốn gán task cho user
+            setUsers(uJson.filter((u) => u.role !== "admin")); 
         } catch {
             toast.error("Cannot load data");
         }
@@ -56,7 +67,8 @@ export default function TasksPage() {
     useEffect(() => { fetchAll(); }, []);
 
     async function handleSubmit() {
-        // ... (handleSubmit logic remains the same)
+        if (!form.text.trim()) return toast.error("Task content cannot be empty");
+        
         try {
             const res = await fetch("/api/admin/tasks", {
                 method: "POST",
@@ -71,6 +83,62 @@ export default function TasksPage() {
             toast.error("Cannot add task");
         }
     }
+
+    // --- CHỨC NĂNG DELETE
+    async function handleDeleteTask(id: string) {
+        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        try {
+            const res = await fetch(`/api/admin/tasks/${id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Deletion failed");
+            toast.success("Task deleted successfully");
+            fetchAll(); 
+        } catch {
+            toast.error("Cannot delete task");
+        }
+    }
+
+    // --- CHỨC NĂNG EDIT
+    function startEdit(todo: Todo) {
+        setIsEditing(todo._id);
+        setEditForm({ 
+            _id: todo._id,
+            text: todo.text, 
+            status: todo.status, 
+            priority: todo.priority, 
+            // FIX LỖI 2322: Gán object thành string ID
+            userId: todo.userId?._id || "" 
+        });
+    }
+
+    async function handleSaveEdit() {
+        if (!editForm.text || !editForm.text.trim()) return toast.error("Task content cannot be empty");
+        if (!isEditing) return;
+
+        try {
+            const res = await fetch(`/api/admin/tasks/${isEditing}`, {
+                method: "PATCH", // Sử dụng PATCH cho cập nhật một phần
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editForm),
+            });
+            
+            if (!res.ok) throw new Error("Editing task failed");
+
+            toast.success("Task updated successfully");
+            setIsEditing(null);
+            setEditForm({});
+            fetchAll(); // Tải lại danh sách
+        } catch {
+            toast.error("Cannot update task");
+        }
+    }
+    // Hủy chỉnh sửa
+    function cancelEdit() {
+        setIsEditing(null);
+        setEditForm({});
+    }
+
 
     const filteredTodos = useMemo(() => {
         let currentTodos = allTodos;
@@ -128,8 +196,8 @@ export default function TasksPage() {
                         Task Filters & Search
                     </div>
                     {/* Clear Button (Icon Only) */}
-                    <Button onClick={handleClearFilters} size="icon" className="bg-gray-500 hover:bg-gray-400 h-10 w-10 px-8 py-4">
-                        Clear
+                    <Button onClick={handleClearFilters} size="sm" className="bg-gray-500 hover:bg-gray-400">
+                        Clear Filters
                     </Button>
                 </div>
                 
@@ -147,7 +215,8 @@ export default function TasksPage() {
                     <div className="relative col-span-1">
                         <Calendar className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input className="border p-2 pl-10 rounded w-full focus:ring-indigo-500 focus:border-indigo-500" type="date"
-                            value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+                            // FIX LỖI 2339: Sửa lỗi đánh máy
+                            value={filterDate} onChange={(e) => setFilterDate(e.target.value)} /> 
                     </div>
                 </div>
 
@@ -200,14 +269,14 @@ export default function TasksPage() {
                         value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} />
                     
                     <select className="border p-3 w-full mb-3 rounded focus:ring-green-500 focus:border-green-500"
-                        value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                        value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as "low" | "medium" | "high" })}>
                         <option value="low">Priority: Low</option>
                         <option value="medium">Priority: Medium</option>
                         <option value="high">Priority: High</option>
                     </select>
                     
                     <select className="border p-3 w-full mb-3 rounded focus:ring-green-500 focus:border-green-500"
-                        value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                        value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "todo" | "doing" | "done" })}>
                         <option value="todo">Status: To Do</option>
                         <option value="doing">Status: Doing</option>
                         <option value="done">Status: Done</option>
@@ -230,33 +299,76 @@ export default function TasksPage() {
                     <div className="space-y-3">
                         {filteredTodos.map((todo) => (
                             <div key={todo._id} className="p-4 border rounded-lg shadow-sm bg-gray-50 flex justify-between items-start hover:shadow-md transition-shadow">
-                                <div>
-                                    <p className="font-medium text-lg">{todo.text}</p>
-                                    <p className="text-sm mt-1">
-                                        <span className={`font-semibold ${todo.priority === 'high' ? 'text-red-500' : todo.priority === 'medium' ? 'text-orange-500' : 'text-gray-500'}`}>
-                                            P: {todo.priority.toUpperCase()}
-                                        </span> | 
-                                        <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
-                                            todo.status === 'done' ? 'bg-green-100 text-green-700' :
-                                            todo.status === 'doing' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-yellow-100 text-yellow-700'
-                                        }`}>
-                                            S: {todo.status.toUpperCase().replace('TODO', 'TO DO')}
-                                        </span>
-                                    </p>
-                                    {todo.userId && (
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            Assigned to: <span className="font-medium text-gray-600">{todo.userId.name}</span>
-                                        </p>
-                                    )}
-                                    <p className="text-xs text-gray-400 mt-1">
-                                        Created: {todo.createdAt ? new Date(todo.createdAt).toLocaleDateString('en-US') : 'N/A'}
-                                    </p>
-                                </div>
-                                <div className="space-x-2 flex-shrink-0">
-                                    <Button size="sm" className="bg-blue-500 hover:bg-blue-600">Edit</Button>
-                                    <Button size="sm" className="bg-red-500 hover:bg-red-600">Delete</Button>
-                                </div>
+                                {isEditing === todo._id ? (
+                                    // Giao diện EDIT
+                                    <div className="w-full space-y-2">
+                                        <input
+                                            className="border p-2 rounded w-full focus:ring-blue-500 focus:border-blue-500"
+                                            value={editForm.text || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
+                                        />
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <select className="border p-2 rounded w-full"
+                                                value={editForm.priority}
+                                                onChange={(e) => setEditForm({ ...editForm, priority: e.target.value as "low" | "medium" | "high" })}>
+                                                <option value="low">Low</option>
+                                                <option value="medium">Medium</option>
+                                                <option value="high">High</option>
+                                            </select>
+                                            <select className="border p-2 rounded w-full"
+                                                value={editForm.status}
+                                                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as "todo" | "doing" | "done" })}>
+                                                <option value="todo">To Do</option>
+                                                <option value="doing">Doing</option>
+                                                <option value="done">Done</option>
+                                            </select>
+                                            <select className="border p-2 rounded w-full"
+                                                // FIX LỖI 2322: Đảm bảo giá trị là string ID
+                                                value={editForm.userId || ""} 
+                                                onChange={(e) => setEditForm({ ...editForm, userId: e.target.value })}>
+                                                <option value="">(Unassigned)</option>
+                                                {users.map((u) => (
+                                                    <option key={u._id} value={u._id}>{u.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex justify-end space-x-2">
+                                            <Button onClick={handleSaveEdit} size="sm" className="bg-green-500 hover:bg-green-600"><Save className="w-4 h-4 mr-1" /> Save</Button>
+                                            <Button onClick={cancelEdit} size="sm" className="bg-gray-500 hover:bg-gray-600"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Giao diện HIỂN THỊ
+                                    <>
+                                        <div>
+                                            <p className="font-medium text-lg">{todo.text}</p>
+                                            <p className="text-sm mt-1">
+                                                <span className={`font-semibold ${todo.priority === 'high' ? 'text-red-500' : todo.priority === 'medium' ? 'text-orange-500' : 'text-gray-500'}`}>
+                                                    P: {todo.priority.toUpperCase()}
+                                                </span> | 
+                                                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                                    todo.status === 'done' ? 'bg-green-100 text-green-700' :
+                                                    todo.status === 'doing' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                    S: {todo.status.toUpperCase().replace('TODO', 'TO DO')}
+                                                </span>
+                                            </p>
+                                            {todo.userId && (
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    Assigned to: <span className="font-medium text-gray-600">{todo.userId.name}</span>
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Created: {todo.createdAt ? new Date(todo.createdAt).toLocaleDateString('en-US') : 'N/A'}
+                                            </p>
+                                        </div>
+                                        <div className="space-x-2 flex-shrink-0">
+                                            <Button onClick={() => startEdit(todo)} size="sm" className="bg-blue-500 hover:bg-blue-600"><Edit className="w-4 h-4" /></Button>
+                                            <Button onClick={() => handleDeleteTask(todo._id)} size="sm" className="bg-red-500 hover:bg-red-600"><Trash2 className="w-4 h-4" /></Button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                         {filteredTodos.length === 0 && (

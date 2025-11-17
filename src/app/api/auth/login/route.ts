@@ -1,15 +1,18 @@
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { connectDB } from "@/lib/mongodb";
-import mongoose from "mongoose";
+    import { NextResponse } from "next/server";
+    import bcrypt from "bcryptjs";
+    import jwt from "jsonwebtoken";
+    import { connectDB } from "@/lib/mongodb";
+    import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema({
+    // ✅ Cập nhật Schema để bao gồm checkInTime và checkOutTime
+    const UserSchema = new mongoose.Schema({
     name: String,
     email: String,
     passwordHash: String,
     role: { type: String, default: "user" },
     isCheckedIn: { type: Boolean, default: false },
+    checkInTime: Date,  // Thêm dòng này
+    checkOutTime: Date, // Thêm dòng này
     });
 
     const User = mongoose.models.User || mongoose.model("User", UserSchema);
@@ -27,7 +30,7 @@ const UserSchema = new mongoose.Schema({
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch)
         return NextResponse.json({ error: "Invalid password" }, { status: 401 });
-        
+
         // ✅ Tạo token JWT
         const token = jwt.sign(
         { id: user._id, name: user.name, email: user.email, role: user.role },
@@ -35,15 +38,22 @@ const UserSchema = new mongoose.Schema({
         { expiresIn: "1d" }
         );
 
-        // ✅ Trả về cookie + user info
+        // ✅ Trả về đầy đủ thông tin (bao gồm checkIn/Out) để client hiển thị ngay lập tức
         const res = NextResponse.json({
         success: true,
         message: "Login successful",
         token,
-        user: { name: user.name, email: user.email, role: user.role },
+        user: {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            // Convert sang ISO string để đồng bộ với logic bên frontend
+            checkInTime: user.checkInTime ? user.checkInTime.toISOString() : null,
+            checkOutTime: user.checkOutTime ? user.checkOutTime.toISOString() : null,
+        },
         });
 
-        // ✅ Lưu token vào cookie (để client fetch kèm theo credentials: include)
+        // ✅ Lưu token vào cookie
         res.cookies.set("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -51,10 +61,10 @@ const UserSchema = new mongoose.Schema({
         path: "/",
         maxAge: 24 * 60 * 60, // 1 ngày
         });
-        
+
         return res;
     } catch (err) {
         console.error("Login error:", err);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
-}
+    }

@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import toast from "react-hot-toast";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { UserPlus, UserX, ArrowDownZA, ArrowUpZA, Filter, Trash2, Search } from 'lucide-react'; 
+import { UserPlus, ArrowDownZA, ArrowUpZA, Filter, Trash2, Search, Edit, Save, X } from 'lucide-react'; 
 
 interface User {
     _id: string;
@@ -19,6 +18,10 @@ export default function UsersPage() {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [form, setForm] = useState({ name: "", email: "", password: "", role: "user" });
     
+    // TRẠNG THÁI CHỈNH SỬA
+    const [isEditing, setIsEditing] = useState<string | null>(null); // Lưu _id của user đang chỉnh sửa
+    const [editForm, setEditForm] = useState<Partial<User & { password?: string }>>({}); // Form cho user đang chỉnh sửa
+
     // TRẠNG THÁI LỌC VÀ SẮP XẾP
     const [filterRole, setFilterRole] = useState<string>(""); 
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -56,6 +59,76 @@ export default function UsersPage() {
         } catch (err) {
             toast.error((err as Error).message || "Failed to add user");
         }
+    }
+    
+    // --- CHỨC NĂNG DELETE
+    async function handleDeleteUser(id: string) {
+        if (!window.confirm("Are you sure you want to delete this user?")) return;
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Deletion failed");
+            toast.success("User deleted successfully");
+            fetchUsers(); 
+        } catch {
+            toast.error("Cannot delete user");
+        }
+    }
+
+    // --- CHỨC NĂNG EDIT
+    function startEdit(user: User) {
+        setIsEditing(user._id);
+        // Không đưa passwordHash vào editForm, chỉ bao gồm các trường cần thiết
+        setEditForm({ 
+            _id: user._id,
+            name: user.name, 
+            email: user.email, 
+            role: user.role,
+            password: "", // Thêm trường password rỗng để người dùng nhập mới nếu muốn thay đổi
+        });
+    }
+
+    async function handleSaveEdit() {
+        if (!editForm.name || !editForm.email) return toast.error("Name and Email are required");
+        if (editForm.password && editForm.password.length < 6 && editForm.password.length > 0) 
+            return toast.error("New password must be at least 6 characters, or leave blank");
+        if (!isEditing) return;
+
+        // Chỉ gửi những trường đã thay đổi, bỏ qua password nếu rỗng
+        const updatePayload: { name?: string; email?: string; role?: "user" | "admin"; password?: string } = {
+            name: editForm.name,
+            email: editForm.email,
+            role: editForm.role,
+        };
+
+        if (editForm.password && editForm.password.length >= 6) {
+            updatePayload.password = editForm.password;
+        }
+
+
+        try {
+            const res = await fetch(`/api/admin/users/${isEditing}`, {
+                method: "PUT", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatePayload),
+            });
+            
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || "Editing user failed");
+
+            toast.success("User updated successfully");
+            setIsEditing(null);
+            setEditForm({});
+            fetchUsers(); 
+        } catch (err) {
+            toast.error((err as Error).message || "Cannot update user");
+        }
+    }
+
+    function cancelEdit() {
+        setIsEditing(null);
+        setEditForm({});
     }
 
     const filteredAndSortedUsers = useMemo(() => {
@@ -127,8 +200,8 @@ export default function UsersPage() {
                     
                     {/* Clear Filters */}
                     <Button onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }}
-                            className="bg-gray-500 hover:bg-gray-400 flex items-center justify-center h-10 w-10 px-8 py-4">
-                        Clear
+                            className="bg-gray-500 hover:bg-gray-400 flex items-center justify-center">
+                        Clear Filters
                     </Button>
                 </div>
             </Card>
@@ -148,7 +221,7 @@ export default function UsersPage() {
                         value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
                     
                     <select className="border p-3 w-full mb-4 rounded focus:ring-green-500 focus:border-green-500"
-                        value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                        value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "user" | "admin" })}>
                         <option value="user">Role: User</option>
                         <option value="admin">Role: Admin</option>
                     </select>
@@ -162,17 +235,55 @@ export default function UsersPage() {
                     <div className="space-y-3">
                         {filteredAndSortedUsers.map((u) => (
                             <div key={u._id} className="p-4 border rounded-lg shadow-sm bg-gray-50 flex justify-between items-center hover:shadow-md transition-shadow">
-                                <div>
-                                    <p className="font-medium text-lg">{u.name}</p>
-                                    <p className="text-sm text-gray-500">{u.email}</p>
-                                    <p className={`text-xs mt-1 font-bold px-2 py-0.5 rounded-full inline-block ${u.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                        {u.role.toUpperCase()}
-                                    </p>
-                                </div>
-                                <div className="space-x-2 flex-shrink-0">
-                                    <Button size="sm" className="bg-blue-500 hover:bg-blue-600">Edit</Button>
-                                    <Button size="sm" className="bg-red-500 hover:bg-red-600">Delete</Button>
-                                </div>
+                                {isEditing === u._id ? (
+                                    // Giao diện EDIT
+                                    <div className="w-full space-y-2">
+                                        <input
+                                            className="border p-2 rounded w-full focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Name"
+                                            value={editForm.name || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                        />
+                                        <input
+                                            className="border p-2 rounded w-full focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Email"
+                                            value={editForm.email || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                        />
+                                        <input
+                                            type="password"
+                                            className="border p-2 rounded w-full focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="New Password (Leave blank to keep old)"
+                                            value={editForm.password || ''}
+                                            onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                                        />
+                                        <select className="border p-2 rounded w-full"
+                                            value={editForm.role}
+                                            onChange={(e) => setEditForm({ ...editForm, role: e.target.value as "user" | "admin" })}>
+                                            <option value="user">Role: User</option>
+                                            <option value="admin">Role: Admin</option>
+                                        </select>
+                                        <div className="flex justify-end space-x-2">
+                                            <Button onClick={handleSaveEdit} size="sm" className="bg-green-500 hover:bg-green-600"><Save className="w-4 h-4 mr-1" /> Save</Button>
+                                            <Button onClick={cancelEdit} size="sm" className="bg-gray-500 hover:bg-gray-600"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Giao diện HIỂN THỊ
+                                    <>
+                                        <div>
+                                            <p className="font-medium text-lg">{u.name}</p>
+                                            <p className="text-sm text-gray-500">{u.email}</p>
+                                            <p className={`text-xs mt-1 font-bold px-2 py-0.5 rounded-full inline-block ${u.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {u.role.toUpperCase()}
+                                            </p>
+                                        </div>
+                                        <div className="space-x-2 flex-shrink-0">
+                                            <Button onClick={() => startEdit(u)} size="sm" className="bg-blue-500 hover:bg-blue-600"><Edit className="w-4 h-4" /></Button>
+                                            <Button onClick={() => handleDeleteUser(u._id)} size="sm" className="bg-red-500 hover:bg-red-600"><Trash2 className="w-4 h-4" /></Button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                         {filteredAndSortedUsers.length === 0 && (

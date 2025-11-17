@@ -1,12 +1,11 @@
-"use client";
+    "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import toast, { Toaster } from "react-hot-toast";
-import { useRouter } from "next/navigation";
+    import Image from "next/image";
+    import { useState, useEffect } from "react";
+    import toast, { Toaster } from "react-hot-toast";
+    import { useRouter } from "next/navigation";
 
-
-type Todo = {
+    type Todo = {
     _id?: string;
     id?: string;
     text: string;
@@ -26,10 +25,8 @@ type Todo = {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [difficultyText, setDifficultyText] = useState("");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [savingDifficulty, setSavingDifficulty] = useState(false);
     const router = useRouter();
-
 
     // ===== FETCH TODOS =====
     useEffect(() => {
@@ -38,11 +35,11 @@ type Todo = {
         try {
             const res = await fetch("/api/todos", {
             method: "GET",
-            credentials: "include", // ✅ cookie tự động gửi
+            credentials: "include",
             });
 
             if (res.status === 401) {
-            toast.error("⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            toast.error("⚠️ Session expired. Please login again!");
             return;
             }
 
@@ -64,7 +61,7 @@ type Todo = {
     const handleAdd = async () => {
         const text = input.trim();
         if (!text) {
-        setError("⚠️ You must enter a task name!");
+        setError("⚠️ Task name is required!");
         return;
         }
         setError("");
@@ -73,7 +70,7 @@ type Todo = {
         (todo) => todo.text && todo.text.toLowerCase() === text.toLowerCase()
         );
         if (isDuplicate) {
-        setError("⚠️ This task already exists!");
+        setError("⚠️ Task already exists!");
         return;
         }
 
@@ -87,20 +84,20 @@ type Todo = {
         try {
         const res = await fetch("/api/todos", {
             method: "POST",
-            credentials: "include", // ✅ gửi cookie
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newTodo),
         });
 
         if (res.status === 401) {
-            toast.error("⚠️ Bạn cần đăng nhập để thêm task!");
+            toast.error("⚠️ Unauthorized access!");
             return;
         }
 
         const created = await res.json();
         setTodos((prev) => [...prev, created]);
         setInput("");
-        toast.success("✅ Task added successfully!");
+        toast.success("✅ Task added!");
         } catch {
         toast.error("❌ Failed to add task!");
         }
@@ -121,7 +118,7 @@ type Todo = {
         try {
         const res = await fetch(`/api/todos/${id}`, {
             method: "PATCH",
-            credentials: "include", // ✅ cookie
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updateData),
         });
@@ -130,9 +127,9 @@ type Todo = {
 
         const updated = await res.json();
         setTodos((prev) => prev.map((t) => (t._id === id ? updated : t)));
-        toast.success("➡️ Task moved forward!");
+        toast.success("🚀 Status updated!");
         } catch (err) {
-        console.error("Move task error:", err);
+        console.error(err);
         toast.error("❌ Failed to move task!");
         }
     };
@@ -157,25 +154,24 @@ type Todo = {
             body: JSON.stringify(updateData),
         });
         setTodos((prev) =>
-            prev.map((t) =>
-            t._id === id ? { ...t, ...updateData } : t
-            )
+            prev.map((t) => (t._id === id ? { ...t, ...updateData } : t))
         );
-        toast.success("⬅️ Task moved back!");
+        toast.success("↩️ Task reverted!");
         } catch {
-        toast.error("❌ Failed to move back!");
+        toast.error("❌ Failed to revert!");
         }
     };
 
     // ===== DELETE =====
     const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this task?")) return;
         try {
         await fetch(`/api/todos/${id}`, {
             method: "DELETE",
             credentials: "include",
         });
         setTodos((prev) => prev.filter((t) => t._id !== id));
-        toast.error("🗑️ Task deleted!");
+        toast.success("🗑️ Task deleted!");
         } catch {
         toast.error("❌ Failed to delete!");
         }
@@ -183,240 +179,289 @@ type Todo = {
 
     // ===== SAVE DIFFICULTY =====
     const handleSaveDifficulty = async () => {
-        if (!difficultyText.trim()) return toast.error("Please enter content");
-
+        if (!difficultyText.trim()) return toast.error("Content is empty");
+        setSavingDifficulty(true);
         try {
-            const res = await fetch("/api/difficulties", {
+        const res = await fetch("/api/difficulties", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            credentials: "include", // ✅ gửi cookie tự động
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ text: difficultyText }),
-            });
+        });
 
-            if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data?.error || "Failed");
-            }
+        if (!res.ok) throw new Error("Failed");
 
-            toast.success("✅ Issue saved successfully!");
-            setDifficultyText("");
+        toast.success("📝 Issue logged!");
+        setDifficultyText("");
         } catch (err) {
-            console.error(err);
-            toast.error("❌ Failed to save issue");
-        }
-        };
-
-
-    // ===== UI =====
-    const getPriorityColor = (p: string) => {
-        switch (p) {
-        case "low":
-            return "bg-green-200 text-green-800";
-        case "medium":
-            return "bg-yellow-200 text-yellow-800";
-        case "high":
-            return "bg-red-200 text-red-800";
-        default:
-            return "";
+        console.error(err);
+        toast.error("❌ Failed to save issue");
+        } finally {
+        setSavingDifficulty(false);
         }
     };
 
+    // ===== UI HELPERS & FILTERS =====
+    const getPriorityBadge = (p: string) => {
+        switch (p) {
+        case "low":
+            return "bg-emerald-100 text-emerald-700 border-emerald-200";
+        case "medium":
+            return "bg-amber-100 text-amber-700 border-amber-200";
+        case "high":
+            return "bg-rose-100 text-rose-700 border-rose-200";
+        default:
+            return "bg-slate-100 text-slate-600";
+        }
+    };
+
+    const getPriorityBorder = (p: string) => {
+        switch (p) {
+        case "low": return "border-l-emerald-500";
+        case "medium": return "border-l-amber-500";
+        case "high": return "border-l-rose-500";
+        default: return "border-l-slate-300";
+        }
+    };
+
+    // --- LOGIC QUAN TRỌNG: LỌC TASK DONE SAU 7 NGÀY ---
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const filteredTodos = todos
-        .filter((t) => t.text && t.text.toLowerCase().includes(search.toLowerCase()))
-        .filter((t) => (filterPriority === "all" ? true : t.priority === filterPriority))
+        .filter((t) => {
+        // 1. Search filter
+        if (search && !t.text.toLowerCase().includes(search.toLowerCase())) return false;
+        
+        // 2. Priority filter
+        if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+
+        // 3. Date filter for DONE tasks (Ẩn sau 7 ngày)
+        if (t.status === "done" && t.finishedAt) {
+            const finishedDate = new Date(t.finishedAt);
+            // Nếu ngày hoàn thành nhỏ hơn (trước) ngày cách đây 7 ngày -> Ẩn
+            if (finishedDate < sevenDaysAgo) return false;
+        }
+
+        return true;
+        })
         .sort((a, b) => {
         const order = { high: 3, medium: 2, low: 1 };
         return order[b.priority] - order[a.priority];
         });
 
     const columns = [
-        { title: "📝 To-Do", key: "todo" },
-        { title: "⚙️ Doing", key: "doing" },
-        { title: "✅ Done", key: "done" },
+        { title: "To-Do", key: "todo", icon: "📋", color: "bg-slate-50 border-slate-200" },
+        { title: "In Progress", key: "doing", icon: "⚡", color: "bg-blue-50/50 border-blue-100" },
+        { title: "Done (Last 7 Days)", key: "done", icon: "✅", color: "bg-green-50/50 border-green-100" },
     ] as const;
 
-    function formatDateISO(iso?: string | null) {
+    function formatDateSimple(iso?: string | null) {
         if (!iso) return "";
-        try {
-            const dt = new Date(iso);
-            return new Intl.DateTimeFormat(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-            }).format(dt);
-        } catch {
-            return iso;
-        }
+        return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
     }
 
-    function timeAgo(iso?: string | null) {
-        if (!iso) return "";
-            const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-        if (isNaN(seconds)) return "";
-            const intervals: [number, Intl.RelativeTimeFormatUnit][] = [
-                [60, "second"],
-                [60, "minute"],
-                [24, "hour"],
-                [7, "day"],
-                [4.34524, "week"],
-                [12, "month"],
-                [Number.POSITIVE_INFINITY, "year"],
-            ];
-        let value = seconds;
-        let unit: Intl.RelativeTimeFormatUnit = "second";
-        for (let i = 0; i < intervals.length; i++) {
-            const [limit, u] = intervals[i];
-            if (Math.abs(value) < limit) {
-                unit = u;
-                break;
-            }
-            value = Math.round(value / limit);
-        }
-        const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-        return rtf.format(-value, unit);
-    }
-    
     return (
-        <main className="ml-5 p-8 min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100">
-        <Toaster position="top-right" />
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-indigo-600">To-Do App 🗂️</h1>
-            
+        <main className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8 font-sans">
+        <Toaster position="bottom-right" toastOptions={{ style: { background: '#334155', color: '#fff' } }} />
+        
+        {/* HEADER */}
+        <div className="max-w-7xl mx-auto flex justify-between items-center mb-8">
+            <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Workplace <span className="text-indigo-600">Board</span></h1>
+                <p className="text-slate-500 text-sm">Manage your tasks efficiently</p>
+            </div>
             <button
-                onClick={() => router.push("/")}
-                className="bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-4 py-2 rounded-lg shadow transition-all duration-200"
+            onClick={() => router.push("/")}
+            className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium px-4 py-2 rounded-lg transition-all shadow-sm"
             >
-                🏠 Về Trang chủ
+            <span>🔙</span> Home
             </button>
         </div>
 
-
-        {/* Input Area */}
-        <div className="flex flex-wrap justify-between items-center gap-4 bg-white rounded-2xl shadow-md p-6 mb-8">
-            <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-            <input
-                type="text"
-                placeholder="Type your task..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2 bg-sky-50 focus:ring-2 focus:ring-indigo-300 outline-none"
-            />
-            <select
-                value={priority}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onChange={(e) => setPriority(e.target.value as any)}
-                className="border bg-sky-50 rounded-lg px-3 py-2 text-gray-700"
-            >
-                <option value="low">🟢 Low</option>
-                <option value="medium">🟡 Medium</option>
-                <option value="high">🔴 High</option>
-            </select>
-            <button
-                onClick={handleAdd}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg"
-            >
-                Add
-            </button>
-            </div>
-            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
-            <div className="flex flex-wrap items-center gap-3">
-            <input
-                type="text"
-                placeholder="🔍 Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border border-gray-300 bg-sky-50 rounded-lg px-4 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none transition-all"
-            />
-            <select
-                value={filterPriority}
-                onChange={(e) =>
-                setFilterPriority(e.target.value as "all" | "low" | "medium" | "high")
-                }
-                className="border border-gray-300 bg-sky-50 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-300 focus:outline-none transition-all"
-            >
-                <option value="all">All</option>
-                <option value="high">🔴 High</option>
-                <option value="medium">🟡 Medium</option>
-                <option value="low">🟢 Low</option>
-            </select>
-            </div>
-        </div>
-
-        {/* Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {columns.map((col) => {
-            const list = filteredTodos.filter((t) => t.status === col.key);
-            return (
-                <div key={col.key} className="bg-white rounded-xl shadow p-4 min-h-[400px]">
-                <h2 className="text-xl font-bold text-indigo-600 mb-3">{col.title}</h2>
-                {loading && <p className="text-gray-500 text-center">⏳ Loading...</p>}
-                {list.length === 0 ? (
-                    <div className="text-gray-400 italic text-center mt-10">
-                    <Image src="/notthing.webp" alt="No items" width={200} height={150} className="mx-auto" />
-                    <p>No tasks here!</p>
+        <div className="max-w-7xl mx-auto">
+            {/* CONTROL PANEL (INPUT & DIFFICULTY) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                
+                {/* LEFT: ADD TASK & FILTERS */}
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                    {/* Add Task Card */}
+                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">New Task</h3>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <input
+                                type="text"
+                                placeholder="What needs to be done?"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                                className="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            />
+                            <select
+                                value={priority}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                onChange={(e) => setPriority(e.target.value as any)}
+                                className="border border-slate-300 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                            >
+                                <option value="low">🟢 Low</option>
+                                <option value="medium">🟡 Medium</option>
+                                <option value="high">🔴 High</option>
+                            </select>
+                            <button
+                                onClick={handleAdd}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-md shadow-indigo-200 transition-all"
+                            >
+                                Add Task
+                            </button>
+                        </div>
+                        {error && <p className="text-sm text-rose-500 mt-2 font-medium">{error}</p>}
                     </div>
-                ) : (
-                    list.map((todo) => (
-                    <div key={todo._id} className={`border rounded-md p-3 mb-3 ${todo.status === "done" ? "bg-green-50" : todo.status === "doing" ? "bg-yellow-50" : "bg-gray-50"}`}>
-                        <div className="flex justify-between items-center">
-                        <span>{todo.text}</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${getPriorityColor(todo.priority)}`}>
-                            {todo.priority.toUpperCase()}
-                        </span>
+
+                    {/* Filters Bar */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <span className="text-slate-400">🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Filter tasks..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="border-none bg-transparent focus:ring-0 text-slate-700 placeholder-slate-400 w-full"
+                            />
                         </div>
-                        <div className="text-xs text-gray-500 mt-2 space-y-1">
-                            <p>🕒 Created: {formatDateISO(todo.createdAt)} {todo.createdAt && <span>• {timeAgo(todo.createdAt)}</span>}</p>
-                            {todo.startedAt && <p>🚀 Started: {formatDateISO(todo.startedAt)} {todo.startedAt && <span>• {timeAgo(todo.startedAt)}</span>}</p>}
-                            {todo.finishedAt && <p>🏁 Finished: {formatDateISO(todo.finishedAt)} {todo.finishedAt && <span>• {timeAgo(todo.finishedAt)}</span>}</p>}
-                        </div>
-                        <div className="flex justify-end mt-3 space-x-2">
-                        {todo.status !== "todo" && (
-                            <button onClick={() => moveBack(todo._id!)} className="bg-sky-200 hover:bg-sky-300 px-3 py-1 rounded text-sm">
-                            ⬅ Back
-                            </button>
-                        )}
-                        {todo.status !== "done" ? (
-                            <button onClick={() => moveNext(todo._id!)} className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm">
-                            Move →
-                            </button>
-                        ) : (
-                            <button onClick={() => handleDelete(todo._id!)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                            Delete
-                            </button>
-                        )}
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-slate-500">Priority:</span>
+                            <div className="flex bg-slate-100 p-1 rounded-lg">
+                                {(['all', 'low', 'medium', 'high'] as const).map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setFilterPriority(p)}
+                                        className={`px-3 py-1 rounded-md capitalize transition-all ${
+                                            filterPriority === p ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'
+                                        }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                    ))
-                )}
                 </div>
-            );
-            })}
-        </div>
 
-        {/* Difficulties */}
-        <div className="mt-8 bg-white rounded-xl shadow p-6 max-w-3xl mx-auto">
-            <h3 className="text-lg font-semibold text-indigo-700 mb-3">📝 Daily Difficulties</h3>
-            <div className="flex gap-3 items-start">
-            <textarea
-                value={difficultyText}
-                onChange={(e) => setDifficultyText(e.target.value)}
-                placeholder="Write down your difficulties or notes for today..."
-                className="flex-1 border rounded-md p-3 min-h-[80px]"
-            />
-            <button
-                onClick={handleSaveDifficulty}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
-                disabled={savingDifficulty}
-            >
-                {savingDifficulty ? "Saving..." : "Save"}
-            </button>
+                {/* RIGHT: DIFFICULTY LOG */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-full flex flex-col">
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 flex justify-between items-center">
+                            <span>📝 Daily Issues / Blockers</span>
+                        </h3>
+                        <textarea
+                            value={difficultyText}
+                            onChange={(e) => setDifficultyText(e.target.value)}
+                            placeholder="Log technical difficulties or blockers here..."
+                            className="flex-1 w-full border border-slate-200 bg-slate-50 rounded-lg p-3 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all mb-3 min-h-[80px]"
+                        />
+                        <button
+                            onClick={handleSaveDifficulty}
+                            disabled={savingDifficulty}
+                            className="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium py-2 rounded-lg transition-all disabled:opacity-50"
+                        >
+                            {savingDifficulty ? "Saving..." : "Log Issue"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* KANBAN COLUMNS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {columns.map((col) => {
+                const list = filteredTodos.filter((t) => t.status === col.key);
+                return (
+                <div key={col.key} className={`flex flex-col rounded-xl ${col.color} min-h-[500px] border`}>
+                    {/* Column Header */}
+                    <div className="p-4 border-b border-slate-200/60 flex justify-between items-center bg-white/50 rounded-t-xl backdrop-blur-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">{col.icon}</span>
+                            <h2 className="font-bold text-slate-700">{col.title}</h2>
+                        </div>
+                        <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">
+                            {list.length}
+                        </span>
+                    </div>
+
+                    {/* Task List */}
+                    <div className="p-3 flex-1 space-y-3 overflow-y-auto max-h-[800px]">
+                    {loading && <div className="animate-pulse space-y-3">{[1,2].map(i => <div key={i} className="h-24 bg-slate-200 rounded-lg"></div>)}</div>}
+                    
+                    {!loading && list.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                            <Image src="/notthing.webp" alt="No items" width={300} height={300} priority={true} className="mx-auto" />
+                            <p className="text-sm">No tasks</p>
+                        </div>
+                    )}
+
+                    {list.map((todo) => (
+                        <div
+                            key={todo._id}
+                            className={`group bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-all border border-slate-100 relative overflow-hidden ${getPriorityBorder(todo.priority)} border-l-4`}
+                        >
+                            {/* Priority & Date Header */}
+                            <div className="flex justify-between items-start mb-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getPriorityBadge(todo.priority)}`}>
+                                    {todo.priority}
+                                </span>
+                                <span className="text-[11px] font-mono text-slate-400">
+                                    {formatDateSimple(todo.createdAt)}
+                                </span>
+                            </div>
+
+                            {/* Content */}
+                            <p className="text-slate-700 font-medium text-sm leading-relaxed mb-4 break-words">
+                                {todo.text}
+                            </p>
+
+                            {/* Footer / Actions */}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                                {/* Move Back Button */}
+                                <div>
+                                    {todo.status !== "todo" && (
+                                        <button 
+                                            onClick={() => moveBack(todo._id!)} 
+                                            className="text-slate-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-indigo-50"
+                                            title="Move Back"
+                                        >
+                                            <span className="text-lg">⬅️</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Main Action Button */}
+                                <div>
+                                    {todo.status !== "done" ? (
+                                        <button 
+                                            onClick={() => moveNext(todo._id!)} 
+                                            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded transition-all"
+                                        >
+                                            Next Step ➡️
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            onClick={() => handleDelete(todo._id!)} 
+                                            className="text-slate-400 hover:text-rose-600 transition-colors p-1 rounded hover:bg-rose-50"
+                                            title="Delete Permanently"
+                                        >
+                                            <span className="text-lg">🗑️</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    </div>
+                </div>
+                );
+            })}
             </div>
         </div>
         </main>
     );
-}
+    }
