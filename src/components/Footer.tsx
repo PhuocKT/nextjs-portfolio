@@ -43,7 +43,7 @@ export default function Footer() {
                         <div className="flex items-center gap-2 text-xs text-slate-400">
                             <span>Built by Hoan Phuoc</span>
                             <a 
-                                href="https://github.com/yourusername" 
+                                href="https://github.com/PhuocKT" 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-slate-500 hover:text-slate-800 transition-colors p-1 bg-slate-100 rounded-md hover:bg-slate-200"

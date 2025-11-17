@@ -28,6 +28,7 @@ export async function POST() {
   // Lưu check in
   userRecord.checkInTime = new Date();
   userRecord.checkOutTime = null; // reset
+  userRecord.isCheckedIn = true;
   await userRecord.save();
 
   return NextResponse.json({ message: "✅ Check In thành công!" });

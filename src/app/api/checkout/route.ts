@@ -33,6 +33,7 @@ export async function POST() {
 
   // Lưu checkout
   userRecord.checkOutTime = new Date();
+  userRecord.isCheckedIn = false;
   await userRecord.save();
 
   return NextResponse.json({ message: "⏰ Check Out thành công!" });

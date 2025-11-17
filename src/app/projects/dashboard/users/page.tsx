@@ -167,44 +167,69 @@ export default function UsersPage() {
             </div>
 
             {/* ✅ KHỐI LỌC/TÌM KIẾM ĐƯA LÊN TRÊN */}
-            <Card className="p-5 mb-8 shadow-lg bg-white">
-                <div className="flex items-center text-xl font-semibold mb-4 text-indigo-600">
-                    <Filter className="w-6 h-6 mr-2" />
-                    User Filters & Search
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3 items-center">
+                <Card className="p-5 mb-8 shadow-lg bg-white">
+                {/* HÀNG 1: HEADER VÀ CLEAR BUTTON */}
+                <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                    <h2 className="flex items-center text-xl font-bold text-indigo-700">
+                        <Filter className="w-5 h-5 mr-2" />
+                        User Filters & Search
+                    </h2>
                     
-                    {/* Search Input (2 cột) */}
-                    <div className="relative col-span-2">
+                    {/* Nút Clear Filters - Đưa lên header */}
+                    <Button 
+                        onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }}
+                        // Sử dụng màu xám/trắng nhẹ, chỉ dùng icon nếu muốn rất gọn gàng
+                        size="sm" className="bg-gray-500 hover:bg-gray-400"
+                    >
+                        Clear Filters
+                    </Button>
+                    {/* Clear Button (Icon Only) */}
+                    
+                </div>
+
+                {/* HÀNG 2: INPUTS VÀ ACTIONS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 items-center">
+                    
+                    {/* 1. Search Input (2-3 cột) */}
+                    <div className="relative col-span-2 lg:col-span-3">
                         <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input className="border p-2 pl-10 rounded w-full focus:ring-indigo-500 focus:border-indigo-500" 
-                            type="search" placeholder="Search by name or email..."
-                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <input 
+                            className="border p-2 pl-10 rounded-md w-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm" 
+                            type="search" 
+                            placeholder="Search by Name or Email..."
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                        />
                     </div>
 
-                    {/* Filter by Role */}
-                    <select className="border p-2 rounded w-full focus:ring-indigo-500 focus:border-indigo-500"
-                        value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
-                        <option value="">Role: All</option>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
+                    {/* 2. Filter by Role (1 cột) */}
+                    <div className="relative">
+                        <select 
+                            className="border p-2 rounded-md w-full appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm pr-8"
+                            value={filterRole} 
+                            onChange={(e) => setFilterRole(e.target.value)}
+                        >
+                            <option value="">Role: All</option>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        {/* Icon mũi tên tùy chỉnh để trông gọn hơn */}
+                        <svg className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
 
-                    {/* Sort by Name */}
+                    {/* 3. Sort by Name (1-2 cột) */}
                     <Button 
                         onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                        className="bg-blue-500 hover:bg-blue-600 flex items-center justify-center">
-                        {sortOrder === 'asc' ? <ArrowDownZA className="w-5 h-5 mr-2" /> : <ArrowUpZA className="w-5 h-5 mr-2" />}
+                        // Sử dụng màu Blue chủ đạo, thêm hover nhẹ nhàng
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center justify-center text-sm col-span-1"
+                    >
+                        {sortOrder === 'asc' ? <ArrowDownZA className="w-4 h-4 mr-1" /> : <ArrowUpZA className="w-4 h-4 mr-1" />}
                         Sort Name 
-                    </Button>
-                    
-                    {/* Clear Filters */}
-                    <Button onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }}
-                            className="bg-gray-500 hover:bg-gray-400 flex items-center justify-center">
-                        Clear Filters
                     </Button>
                 </div>
             </Card>
+
+
 
             {/* BỐ CỤC 2 CỘT: ADD USER (1/3) & USER LIST (2/3) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
