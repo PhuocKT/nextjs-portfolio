@@ -263,7 +263,7 @@
 
     return (
         <main className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8 font-sans">
-        <Toaster position="bottom-right" toastOptions={{ style: { background: '#334155', color: '#fff' } }} />
+        <Toaster position="top-right" toastOptions={{ style: { background: '#334155', color: '#fff' } }} />
         
         {/* HEADER */}
         <div className="max-w-7xl mx-auto flex justify-between items-center mb-8">

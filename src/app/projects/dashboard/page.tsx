@@ -1,431 +1,490 @@
-// /app/projects/dashboard/(admin)/page.tsx
+    "use client";
 
-"use client";
+    import { useEffect, useState, useCallback } from "react";
+    import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+    import { Button } from "@/components/ui/button";
+    import {
+        ResponsiveContainer,
+        BarChart, Bar,
+        PieChart, Pie, Cell,
+        CartesianGrid, XAxis, YAxis, Tooltip, Legend,
+        AreaChart, Area
+    } from "recharts";
+    import toast, { Toaster } from "react-hot-toast";
+    import { useRouter } from "next/navigation";
+    import {
+        Calendar as CalendarIcon,
+        ListTodo, Users,
+        Trophy, Filter, ArrowRight, Loader2
+    } from 'lucide-react';
+    import { format, subDays } from "date-fns";
+    import { Calendar } from "@/components/ui/calendar";
+    import {
+        Popover,
+        PopoverContent,
+        PopoverTrigger,
+    } from "@/components/ui/popover";
+    import {
+        Select,
+        SelectContent,
+        SelectItem,
+        SelectTrigger,
+        SelectValue,
+    } from "@/components/ui/select";
+    // ⚠️ LƯU Ý: Nếu chưa có Tabs, hãy chạy: npx shadcn@latest add tabs
+    import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    import { cn } from "@/lib/utils";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-    ResponsiveContainer,
-    BarChart, Bar,
-    LineChart, Line,
-    CartesianGrid, XAxis, YAxis, Tooltip, Legend,
-} from "recharts";
-import toast, { Toaster } from "react-hot-toast";
-import { useRouter } from "next/navigation"; 
-import { 
-    ChevronLeft, ChevronRight, 
-    Clock, User, MessageSquare, 
-    CheckSquare, ListTodo, Users,
-    MoveLeft, MoveRight, CalendarIcon 
-} from 'lucide-react'; // 🗑️ ĐÃ XÓA 'Settings'
-import { format } from "date-fns"; 
-import { Calendar } from "@/components/ui/calendar"; 
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
-// Utility functions
-const formatDate = (date: Date): string => format(date, 'yyyy-MM-dd');
-const getTodayDate = (): string => formatDate(new Date());
-
-// === CÁC TYPES (KHÔNG DÙNG 'ANY') ===
-type Difficulty = {
-    _id: string;
-    text: string;
-    date: string;
-    userId: { name: string } | null;
-    createdAt: string;
-};
-
-type CheckInOut = {
-    name: string;
-    checkInTime: string | null;
-    checkOutTime: string | null;
-    isCheckedIn: boolean; // Dữ liệu trực tiếp từ DB cho trạng thái hiện tại
-};
-
-type TaskTrendData = {
-    name: string;
-    created: number;
-    completed: number;
-};
-
-type OverviewResponse = {
-    totalTodos: number;
-    totalUsers: number; 
-    byStatus: { name: string; count: number }[];
-    byPriority: { name: string; count: number }[];
-    todayStats: {
-        tasksCreatedToday: number;
-        tasksCompletedToday: number;
-        activeMembers: number;
-    };
-    taskTrend: TaskTrendData[];
-    checkInOutData: CheckInOut[];
-    difficulties: Difficulty[]; 
-};
-
-// === COMPONENT BỘ ĐIỀU HƯỚNG NGÀY NÂNG CAO ===
-interface DateNavigatorProps {
-    currentDate: string;
-    setCurrentDate: (date: string) => void;
-}
-
-const DateNavigator = ({ currentDate, setCurrentDate }: DateNavigatorProps) => {
-    const isToday = useMemo(() => currentDate === getTodayDate(), [currentDate]);
-    
-    // Chuyển string "YYYY-MM-DD" sang Date object (cần thiết cho react-day-picker)
-    // Dùng UTC để tránh bị lệch ngày khi new Date(YYYY-MM-DD)
-    const selectedDate = useMemo(() => new Date(currentDate + 'T00:00:00Z'), [currentDate]);
-
-    const displayDate = useMemo(() => {
-        return format(selectedDate, 'EEEE, LLLL do, yyyy'); 
-    }, [selectedDate]);
-
-    // Xử lý thay đổi ngày (từ nút)
-    const handleDayChange = (days: number) => {
-        const newDate = new Date(selectedDate);
-        newDate.setDate(newDate.getDate() + days);
-        setCurrentDate(formatDate(newDate));
+    // --- TYPES DEFINITIONS (Fix lỗi 'any') ---
+    type DateRange = {
+        from: Date;
+        to: Date;
     };
 
-    // Xử lý thay đổi tháng (từ nút)
-    const handleMonthChange = (months: number) => {
-        const newDate = new Date(selectedDate);
-        newDate.setMonth(newDate.getMonth() + months);
-        setCurrentDate(formatDate(newDate));
-    };
-    
-    // Xử lý chọn ngày từ Lịch Popover
-    const handleCalendarSelect = (date: Date | undefined) => {
-        if (date) {
-            setCurrentDate(formatDate(date));
-        }
-    };
-
-    return (
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 p-4 bg-white rounded-lg shadow">
-            {/* Hiển thị ngày */}
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800 text-center md:text-left">{displayDate}</h2>
-            
-            <div className="flex flex-wrap justify-center items-center gap-2">
-                {/* Lọc theo Tháng */}
-                <Button size="icon" onClick={() => handleMonthChange(-1)} variant="outline">
-                    <MoveLeft className="w-5 h-5" />
-                </Button>
-                <span className="text-sm font-medium hidden sm:inline">Month</span>
-                <Button size="icon" onClick={() => handleMonthChange(1)} variant="outline">
-                    <MoveRight className="w-5 h-5" />
-                </Button>
-                
-                {/* Dấu phân cách */}
-                <div className="w-px h-6 bg-gray-200 mx-2 hidden sm:block"></div>
-
-                {/* Lọc theo Ngày */}
-                <Button size="icon" onClick={() => handleDayChange(-1)} variant="outline">
-                    <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <span className="text-sm font-medium hidden sm:inline">Day</span>
-                <Button size="icon" onClick={() => handleDayChange(1)} variant="outline" disabled={isToday}>
-                    <ChevronRight className="w-5 h-5" />
-                </Button>
-                
-                {/* Lịch & Nút Today */}
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-[150px] justify-start text-left font-normal",
-                                !currentDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            <span>Pick a date</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={handleCalendarSelect}
-                            initialFocus
-                            disabled={(date: Date) => date > new Date()} 
-                        />
-                    </PopoverContent>
-                </Popover>
-                
-                <Button onClick={() => setCurrentDate(getTodayDate())} variant="outline" disabled={isToday}>
-                    Today
-                </Button>
-            </div>
-        </div>
-    );
-};
-
-// === COMPONENT BẢNG CHECK-IN/OUT ===
-const CheckInOutTable = ({ data }: { data: CheckInOut[] }) => {
-    // Hàm này chỉ để hiển thị thời gian theo múi giờ local của người dùng
-    const formatTime = (time: string | null) => {
-        if (!time) return 'N/A';
-        // Tạo Date object, sau đó hiển thị giờ theo múi giờ local
-        return new Date(time).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
-        });
+    // Định nghĩa kiểu dữ liệu cho CheckInOut
+    interface CheckInOutItem {
+        _id?: string;
+        name: string;
+        checkInTime: string | null;
+        checkOutTime: string | null;
+        isCheckedIn: boolean;
     }
 
-    const todayDateStr = getTodayDate(); 
+    // Định nghĩa kiểu dữ liệu cho Difficulty
+    interface DifficultyItem {
+        _id: string;
+        text: string;
+        createdAt: string;
+        userId: { name: string } | null;
+    }
 
-    return (
-        <div className="h-[300px] overflow-y-auto pr-2">
-            <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0">
-                    <tr>
-                        <th scope="col" className="px-4 py-3">Member</th>
-                        <th scope="col" className="px-4 py-3">Check-In</th>
-                        <th scope="col" className="px-4 py-3">Check-Out</th>
-                        <th scope="col" className="px-4 py-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.length > 0 ? data.map((item, index) => {
-                        
-                        // ✅ CHUYỂN DATE TỪ DB SANG CHUỖI NGÀY ĐỂ SO SÁNH
-                        // Quan trọng: Sử dụng item.checkInTime/checkOutTime trực tiếp để tạo Date object
-                        const checkInDate = item.checkInTime ? formatDate(new Date(item.checkInTime)) : null;
-                        const checkOutDate = item.checkOutTime ? formatDate(new Date(item.checkOutTime)) : null;
+    // Định nghĩa response tổng thể
+    interface OverviewResponse {
+        summary: {
+            totalTasks: number;
+            completedTasks: number;
+            completionRate: number;
+        };
+        taskTrend: { name: string; created: number; completed: number }[];
+        byStatus: { name: string; value: number; color: string }[];
+        byPriority: { name: string; count: number }[];
+        topPerformers: { name: string; count: number }[];
+        dailyOps: {
+            activeMembers: number;
+            checkInOutData: CheckInOutItem[]; // Sử dụng type cụ thể thay vì any[]
+            difficulties: DifficultyItem[];   // Sử dụng type cụ thể thay vì any[]
+        };
+        usersList: { _id: string; name: string }[];
+    }
 
-                        let status;
-                        if (item.isCheckedIn && checkInDate === todayDateStr) {
-                            // 🟢 CASE 1: Đã Check-In HÔM NAY và item.isCheckedIn = true (Chưa check-out)
-                            status = "Active";
-                        } else if (checkInDate === todayDateStr && checkOutDate === todayDateStr) {
-                            // ⚪ CASE 2: Đã Check-In VÀ đã Check-Out HÔM NAY (isCheckedIn sẽ là false)
-                            status = "Offline";
-                        } else {
-                            // 🔴 CASE 3: Chưa Check-In HÔM NAY (Dù isCheckedIn là false hay true từ ngày hôm qua)
-                            // Hoặc checkInTime/checkOutTime thuộc về ngày khác.
-                            status = "Absent";
-                        }
-                        
-                        // CSS cho cột Check-In/Out chỉ hiển thị thời gian nếu nó thuộc ngày hôm nay
-                        const displayCheckIn = checkInDate === todayDateStr ? formatTime(item.checkInTime) : 'N/A';
-                        const displayCheckOut = checkOutDate === todayDateStr ? formatTime(item.checkOutTime) : 'N/A';
+    // --- CONSTANTS ---
+    const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444'];
 
+    export default function AdminDashboardPage() {
+        const router = useRouter();
+        
+        // Sử dụng loading state để hiển thị UI chờ
+        const [loading, setLoading] = useState<boolean>(true);
+        const [data, setData] = useState<OverviewResponse | null>(null);
 
-                        return (
-                            <tr key={index} className="bg-white border-b last:border-b-0 hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
-                                <td className={`px-4 py-3 font-mono ${status !== 'Absent' ? 'text-green-600' : 'text-gray-400'}`}>
-                                    {displayCheckIn}
-                                </td>
-                                <td className={`px-4 py-3 font-mono ${status === 'Offline' ? 'text-red-600' : 'text-gray-400'}`}>
-                                    {displayCheckOut}
-                                </td>
-                                <td className="px-4 py-3">
-                                    {status === 'Active' ? (
-                                        <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">Active</span>
-                                    ) : status === 'Absent' ? (
-                                        <span className="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">Absent</span>
-                                    ) : (
-                                        <span className="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">Offline</span>
-                                    )}
-                                </td>
-                            </tr>
-                        );
-                    }) : (
-                        <tr>
-                            <td colSpan={4} className="text-center text-gray-400 pt-10">
-                                No members found.
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
-    );
-};
+        // STATE 1: ANALYTICS FILTER
+        const [dateRange, setDateRange] = useState<DateRange>({
+            from: subDays(new Date(), 6),
+            to: new Date()
+        });
+        const [selectedUserId, setSelectedUserId] = useState<string>("all");
+        const [rangeLabel, setRangeLabel] = useState<string>("7d");
 
-// === COMPONENT CHÍNH: ADMIN DASHBOARD ===
-export default function AdminDashboardPage() {
-    const router = useRouter(); 
-    const [data, setData] = useState<OverviewResponse | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [currentDate, setCurrentDate] = useState<string>(getTodayDate()); 
+        // STATE 2: DAILY OPERATIONS FILTER
+        const [dailyDate, setDailyDate] = useState<Date>(new Date());
 
-    const fetchOverview = useCallback(async (date: string) => {
-        setLoading(true);
-        try {
-            // API cần nhận ngày để lọc các dữ liệu khác (tasks, difficulties)
-            const res = await fetch(`/api/admin/overview?date=${date}`); 
-            if (!res.ok) throw new Error("Failed to load overview");
-            const json: OverviewResponse = await res.json();
-            setData(json);
-        } catch (err) {
-            console.error(err);
-            toast.error("Cannot load dashboard");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+        const handleRangeChange = (val: string) => {
+            setRangeLabel(val);
+            const today = new Date();
+            if (val === '7d') setDateRange({ from: subDays(today, 6), to: today });
+            if (val === '30d') setDateRange({ from: subDays(today, 29), to: today });
+            if (val === 'month') {
+                const start = new Date(today.getFullYear(), today.getMonth(), 1);
+                setDateRange({ from: start, to: today });
+            }
+        };
 
-    useEffect(() => {
-        fetchOverview(currentDate);
-    }, [fetchOverview, currentDate]);
+        const fetchDashboardData = useCallback(async () => {
+            setLoading(true);
+            try {
+                const query = new URLSearchParams({
+                    from: format(dateRange.from, 'yyyy-MM-dd'),
+                    to: format(dateRange.to, 'yyyy-MM-dd'),
+                    userId: selectedUserId,
+                    dailyDate: format(dailyDate, 'yyyy-MM-dd')
+                });
 
+                const res = await fetch(`/api/admin/overview?${query.toString()}`);
+                if (!res.ok) throw new Error("Failed to load data");
+                const json: OverviewResponse = await res.json();
+                setData(json);
+            } catch (err) {
+                console.error(err);
+                toast.error("Could not load dashboard data");
+            } finally {
+                setLoading(false);
+            }
+        }, [dateRange, selectedUserId, dailyDate]);
 
-    return (
-        <main className="p-4 md:p-8 min-h-screen bg-gray-50">
-            <Toaster position="top-right" />
-            
-            {/* KHU VỰC TIÊU ĐỀ VÀ NÚT ROUTER */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b gap-4">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-indigo-700">📊 Admin Dashboard</h1>
-                <div className="flex gap-3">
-                    <Button
-                        onClick={() => router.push("/")}
-                        className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium px-4 py-2 rounded-lg transition-all shadow-sm"
-                        >
-                        <span>🔙</span> Home
-                    </Button>
-                    <Button onClick={() => router.push('/projects/dashboard/tasks')} variant="default" className="bg-indigo-600 hover:bg-indigo-700">
-                        <ListTodo className="w-4 h-4 mr-2"/> Manage Tasks
-                    </Button>
-                    <Button onClick={() => router.push('/projects/dashboard/users')} variant="outline" className="text-indigo-600 border-indigo-600 hover:bg-indigo-50">
-                        <Users className="w-4 h-4 mr-2"/> Manage Users
-                    </Button>
-                    
+        useEffect(() => {
+            fetchDashboardData();
+        }, [fetchDashboardData]);
+
+        // Loading State UI
+        if (loading && !data) {
+            return (
+                <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                        <p className="text-sm text-slate-500">Loading dashboard data...</p>
+                    </div>
                 </div>
-            </div>
+            );
+        }
 
-            {/* BỘ ĐIỀU HƯỚNG NGÀY NÂNG CẤP */}
-            <DateNavigator 
-                currentDate={currentDate}
-                setCurrentDate={setCurrentDate}
-            />
+        return (
+            <main className="p-4 md:p-8 min-h-screen bg-slate-50/50 space-y-8">
+                <Toaster position="top-right" />
 
-            {loading && <p className="text-gray-500 text-center mt-10">⏳ Loading overview data...</p>}
-
-            {data && (
-                <div className="space-y-8">
-                    {/* HÀNG 1: HOẠT ĐỘNG TRONG NGÀY (Lọc theo ngày) */}
+                {/* HEADER */}
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-600 mb-3">Activity for Selected Date</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card className="p-6 shadow-lg border-l-4 border-blue-500">
-                                <p className="text-sm text-gray-500 flex items-center"><ListTodo className="w-4 h-4 mr-2"/> Tasks Created</p>
-                                <p className="text-4xl font-extrabold text-blue-700 mt-1">{data.todayStats.tasksCreatedToday}</p>
-                            </Card>
-                            <Card className="p-6 shadow-lg border-l-4 border-green-500">
-                                <p className="text-sm text-gray-500 flex items-center"><CheckSquare className="w-4 h-4 mr-2"/> Tasks Completed</p>
-                                <p className="text-4xl font-extrabold text-green-700 mt-1">{data.todayStats.tasksCompletedToday}</p>
-                            </Card>
-                            <Card className="p-6 shadow-lg border-l-4 border-cyan-500">
-                                <p className="text-sm text-gray-500 flex items-center"><Users className="w-4 h-4 mr-2"/> Active Members (Real-time)</p>
-                                <p className="text-4xl font-extrabold text-cyan-700 mt-1">{data.todayStats.activeMembers}</p>
-                            </Card>
-                        </div>
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Dashboard Overview</h1>
+                        <p className="text-slate-500 text-sm mt-1">Manage projects, track performance, and monitor team status.</p>
                     </div>
+                    <div className="flex flex-wrap gap-3">
+                        <Button variant="outline" onClick={() => router.push("/")} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">Home</Button>
+                        <Button onClick={() => router.push('/projects/dashboard/tasks')} className="bg-indigo-600 hover:bg-indigo-700">
+                            <ListTodo className="w-4 h-4 mr-2" /> Tasks
+                        </Button>
+                        <Button onClick={() => router.push('/projects/dashboard/users')} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
+                            <Users className="w-4 h-4 mr-2" /> Members
+                        </Button>
+                    </div>
+                </div>
 
-                    {/* HÀNG 2: XU HƯỚNG (Lọc theo 7 ngày gần nhất) */}
-                    <Card className="p-6 shadow-xl lg:col-span-3">
-                        <h3 className="text-xl font-semibold mb-4 text-indigo-600">Task Trend (Last 7 Days)</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={data.taskTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                                <XAxis dataKey="name" stroke="#6366f1" />
-                                <YAxis allowDecimals={false} stroke="#6366f1" />
-                                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }} />
-                                <Legend />
-                                <Line type="monotone" dataKey="created" name="Tasks Created" stroke="#3b82f6" strokeWidth={3} activeDot={{ r: 8 }} />
-                                <Line type="monotone" dataKey="completed" name="Tasks Completed" stroke="#10b981" strokeWidth={3} activeDot={{ r: 8 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </Card>
-
-                    {/* HÀNG 3: LOGS VÀ TRẠNG THÁI */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Difficulty Log (Lọc theo ngày) */}
-                        <Card className="p-6 lg:col-span-2 shadow-xl">
-                            <h3 className="text-xl font-semibold mb-4 text-red-600">Difficulty Log (for Selected Date)</h3>
-                            <div className="h-[300px] overflow-y-auto pr-2 space-y-3">
-                                {data.difficulties.length > 0 ? (
-                                    data.difficulties.map((d) => (
-                                        <div key={d._id} className="p-3 border rounded-lg bg-red-50">
-                                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                                                <div className="flex items-center"><User className="w-3 h-3 mr-1" /> {d.userId?.name || 'Unknown'}</div>
-                                                <div className="flex items-center"><Clock className="w-3 h-3 mr-1" /> {new Date(d.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
-                                            </div>
-                                            <p className="font-medium text-gray-800 text-sm flex items-start">
-                                                <MessageSquare className="w-4 h-4 mr-2 mt-0.5 text-red-500 flex-shrink-0" />
-                                                {d.text}
-                                            </p>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-gray-400 text-center mt-10">No difficulty logs found for this date.</p>
-                                )}
-                            </div>
-                        </Card>
+                {/* --- SECTION 1: ANALYTICS --- */}
+                <div className="space-y-6">
+                    {/* FILTER BAR */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded-lg border shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-5 h-5 text-slate-400" />
+                            <span className="font-semibold text-slate-700">Analytics Filter:</span>
+                        </div>
                         
-                        {/* Trạng thái hiện tại */}
-                        <Card className="p-6 shadow-xl">
-                            <h3 className="text-xl font-semibold mb-4 text-green-600">Current Member Status (Real-time)</h3>
-                            <CheckInOutTable data={data.checkInOutData} />
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Tabs value={rangeLabel} onValueChange={handleRangeChange} className="w-auto">
+                                <TabsList>
+                                    <TabsTrigger value="7d">Last 7 Days</TabsTrigger>
+                                    <TabsTrigger value="30d">Last 30 Days</TabsTrigger>
+                                    <TabsTrigger value="month">This Month</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>{format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}</>
+                                            ) : (
+                                                format(dateRange.from, "LLL dd, y")
+                                            )
+                                        ) : (
+                                            <span>Pick a date</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={(range) => {
+                                            if (range?.from) {
+                                                setDateRange({ from: range.from, to: range.to || range.from });
+                                                setRangeLabel("custom");
+                                            }
+                                        }}
+                                        numberOfMonths={2}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+
+                            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select Member" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Members</SelectItem>
+                                    {data?.usersList.map(u => (
+                                        <SelectItem key={u._id} value={u._id}>{u.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* STATS CARDS */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="shadow-sm border-l-4 border-indigo-500">
+                            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Total Tasks (In Range)</CardTitle></CardHeader>
+                            <CardContent><div className="text-3xl font-bold text-indigo-700">{data?.summary.totalTasks ?? 0}</div></CardContent>
+                        </Card>
+                        <Card className="shadow-sm border-l-4 border-green-500">
+                            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Completed Tasks</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="flex justify-between items-end">
+                                    <div className="text-3xl font-bold text-green-700">{data?.summary.completedTasks ?? 0}</div>
+                                    <div className="text-sm font-medium text-green-600 mb-1">{data?.summary.completionRate ?? 0}% Rate</div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-sm border-l-4 border-amber-500">
+                            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Top Performer</CardTitle></CardHeader>
+                            <CardContent>
+                                {data?.topPerformers && data.topPerformers.length > 0 ? (
+                                    <div className="flex items-center gap-2">
+                                        <Trophy className="w-8 h-8 text-amber-500" />
+                                        <div>
+                                            <div className="text-lg font-bold text-slate-800">{data.topPerformers[0].name}</div>
+                                            <div className="text-xs text-slate-500">{data.topPerformers[0].count} tasks done</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-slate-400 italic">No data yet</div>
+                                )}
+                            </CardContent>
                         </Card>
                     </div>
 
-                    {/* HÀNG 4: TỔNG QUAN HỆ THỐNG (Không lọc) */}
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-600 mb-3 mt-8">All-Time System Overview</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <Card className="p-6 text-center shadow-lg border-l-4 border-gray-500">
-                                <p className="text-sm text-gray-500">Total Tasks (All-Time)</p>
-                                <p className="text-4xl font-extrabold text-gray-700 mt-1">{data.totalTodos}</p>
-                            </Card>
-                            <Card className="p-6 text-center shadow-lg border-l-4 border-gray-500">
-                                <p className="text-sm text-gray-500">Total Members</p> 
-                                <p className="text-4xl font-extrabold text-gray-700 mt-1">{data.totalUsers}</p>
-                            </Card>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <Card className="p-6 lg:col-span-2 shadow-xl">
-                                <h3 className="text-xl font-semibold mb-4 text-indigo-600">Task Status (All-Time)</h3>
+                    {/* CHARTS ROW 1 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 shadow-md">
+                            <CardHeader><CardTitle>Task Productivity Trend</CardTitle></CardHeader>
+                            <CardContent className="pl-0">
                                 <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={data.byStatus} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" />
-                                        <YAxis allowDecimals={false} />
-                                        <Tooltip />
+                                    <AreaChart data={data?.taskTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                                        <YAxis stroke="#94a3b8" fontSize={12} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                                         <Legend />
-                                        <Bar dataKey="count" fill="#6366f1" name="Number of Tasks" />
+                                        <Area type="monotone" dataKey="created" stroke="#6366f1" fillOpacity={1} fill="url(#colorCreated)" name="Created" />
+                                        <Area type="monotone" dataKey="completed" stroke="#10b981" fillOpacity={1} fill="url(#colorCompleted)" name="Completed" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-md">
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-5 h-5 text-yellow-500" /> Top Performers</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {data?.topPerformers.slice(0, 5).map((user, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn("flex items-center justify-center w-8 h-8 rounded-full font-bold text-white", 
+                                                    idx === 0 ? 'bg-yellow-400' : idx === 1 ? 'bg-slate-400' : idx === 2 ? 'bg-orange-400' : 'bg-indigo-200 text-indigo-600'
+                                                )}>
+                                                    {idx + 1}
+                                                </div>
+                                                <span className="font-medium text-slate-700">{user.name}</span>
+                                            </div>
+                                            <span className="font-bold text-indigo-600">{user.count} <span className="text-xs font-normal text-slate-400">tasks</span></span>
+                                        </div>
+                                    ))}
+                                    {(!data?.topPerformers.length) && <p className="text-center text-gray-400 py-4">No performance data in this range.</p>}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* CHARTS ROW 2 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="shadow-md">
+                            <CardHeader><CardTitle>Task Status Breakdown {selectedUserId !== 'all' && "(Selected User)"}</CardTitle></CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={data?.byStatus}
+                                            cx="50%" cy="50%"
+                                            innerRadius={60} outerRadius={100}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {data?.byStatus.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend verticalAlign="bottom" height={36}/>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-md">
+                            <CardHeader><CardTitle>Task Priority Distribution {selectedUserId !== 'all' && "(Selected User)"}</CardTitle></CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={data?.byPriority} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={80} />
+                                        <Tooltip cursor={{fill: 'transparent'}} />
+                                        <Bar dataKey="count" fill="#f97316" radius={[0, 4, 4, 0]} barSize={30}>
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
-                            </Card>
-                            
-                            <Card className="p-6 shadow-xl">
-                                <h3 className="text-xl font-semibold mb-4 text-orange-600">Task Priority (All-Time)</h3>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={data.byPriority} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" />
-                                        <YAxis allowDecimals={false} />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="count" stroke="#f97316" strokeWidth={3} name="Tasks" />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </Card>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
-            )}
-        </main>
+
+                <div className="border-t border-slate-200 my-8"></div>
+
+                {/* --- SECTION 2: DAILY OPERATIONS --- */}
+                <div>
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Daily Operations & Logs</h2>
+                        <p className="text-slate-500">Detailed check-in logs and difficulties for a specific day.</p>
+                    </div>
+                    
+                    {/* Sub-component nhúng trực tiếp */}
+                    <DateNavigator currentDate={format(dailyDate, 'yyyy-MM-dd')} setCurrentDate={(d) => setDailyDate(new Date(d))} />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        <Card className="lg:col-span-2 shadow-md border-t-4 border-blue-500">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="text-blue-700">Member Attendance</CardTitle>
+                                <div className="text-xs font-normal px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
+                                    Viewing: {format(dailyDate, 'MMM do, yyyy')}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                            <CheckInOutTable data={data?.dailyOps.checkInOutData || []} targetDate={format(dailyDate, 'yyyy-MM-dd')} />
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-md border-t-4 border-red-500">
+                            <CardHeader>
+                                <CardTitle className="text-red-700">Difficulties Reported</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                            <DifficultyLog difficulties={data?.dailyOps.difficulties || []} />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // === SUB-COMPONENTS (Định nghĩa trực tiếp tại đây để tránh lỗi module not found) ===
+
+    const DateNavigator = ({ currentDate, setCurrentDate }: { currentDate: string, setCurrentDate: (d: string) => void }) => {
+        const dateObj = new Date(currentDate);
+        return (
+            <div className="flex flex-wrap items-center justify-between bg-white p-4 rounded-lg shadow-sm border">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" onClick={() => setCurrentDate(format(subDays(dateObj, 1), 'yyyy-MM-dd'))}>
+                        <ArrowRight className="w-4 h-4 rotate-180" />
+                    </Button>
+                    <div className="text-lg font-semibold min-w-[200px] text-center">
+                        {format(dateObj, 'EEEE, MMMM do, yyyy')}
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentDate(format(new Date(dateObj.setDate(dateObj.getDate() + 1)), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')}>
+                        <ArrowRight className="w-4 h-4" />
+                    </Button>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentDate(format(new Date(), 'yyyy-MM-dd'))} disabled={currentDate === format(new Date(), 'yyyy-MM-dd')}>
+                    Back to Today
+                </Button>
+            </div>
+        )
+    }
+
+    const CheckInOutTable = ({ data, targetDate }: { data: CheckInOutItem[], targetDate: string }) => {
+        const isToday = targetDate === format(new Date(), 'yyyy-MM-dd');
+        
+        return (
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3">Member</th>
+                            <th className="px-4 py-3">Check-In</th>
+                            <th className="px-4 py-3">Check-Out</th>
+                            <th className="px-4 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.map((item, idx) => {
+                            const ciDate = item.checkInTime ? format(new Date(item.checkInTime), 'yyyy-MM-dd') : null;
+                            const coDate = item.checkOutTime ? format(new Date(item.checkOutTime), 'yyyy-MM-dd') : null;
+                            
+                            const displayCI = ciDate === targetDate && item.checkInTime ? new Date(item.checkInTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                            const displayCO = coDate === targetDate && item.checkOutTime ? new Date(item.checkOutTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                            
+                            let status = "Absent";
+                            if (ciDate === targetDate) {
+                                if (!item.checkOutTime || coDate !== targetDate) status = isToday && item.isCheckedIn ? "Active" : "Working (No Checkout)";
+                                if (coDate === targetDate) status = "Offline";
+                            }
+
+                            return (
+                                <tr key={idx} className="border-b hover:bg-slate-50">
+                                    <td className="px-4 py-3 font-medium">{item.name}</td>
+                                    <td className="px-4 py-3 text-green-600 font-mono">{displayCI}</td>
+                                    <td className="px-4 py-3 text-red-600 font-mono">{displayCO}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={cn("px-2 py-1 rounded-full text-xs font-medium", 
+                                            status === 'Active' ? "bg-green-100 text-green-800" : 
+                                            status === 'Offline' ? "bg-gray-100 text-gray-800" : 
+                                            status === 'Absent' ? "bg-red-50 text-red-800" : "bg-yellow-100 text-yellow-800"
+                                        )}>
+                                            {status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                        {data.length === 0 && <tr><td colSpan={4} className="text-center py-4 text-gray-400">No records found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        )
+    }
+
+    const DifficultyLog = ({ difficulties }: { difficulties: DifficultyItem[] }) => (
+        <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2">
+            {difficulties.length > 0 ? difficulties.map((d) => (
+                <div key={d._id} className="p-3 border rounded-lg bg-red-50 border-red-100">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span className="font-bold text-gray-700">{d.userId?.name || 'Unknown'}</span>
+                        <span>{new Date(d.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <p className="text-sm text-gray-800">{d.text}</p>
+                </div>
+            )) : <p className="text-center text-gray-400 mt-8">No difficulties reported.</p>}
+        </div>
     );
-}

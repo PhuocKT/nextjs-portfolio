@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { Search, Filter, Calendar, User, Trash2, Tag, ListTodo, Edit, Save, X } from 'lucide-react'; // Import icons
 
 interface Todo {
@@ -33,6 +33,7 @@ export default function TasksPage() {
     const router = useRouter();
     const [allTodos, setAllTodos] = useState<Todo[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    // Mặc định status là 'todo'
     const [form, setForm] = useState({ text: "", status: "todo", priority: "low", userId: "" });
     
     // TRẠNG THÁI CHỈNH SỬA
@@ -73,7 +74,7 @@ export default function TasksPage() {
             const res = await fetch("/api/admin/tasks", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify(form), // Gửi 'status: "todo"' đi
             });
             if (!res.ok) throw new Error("Adding task failed");
             toast.success("Task added successfully");
@@ -183,6 +184,7 @@ export default function TasksPage() {
 
     return (
         <div className="p-8 min-h-screen bg-gray-50">
+            <Toaster position="top-right" toastOptions={{ style: { background: '#334155', color: '#fff' } }} />
             <div className="flex justify-between items-center mb-6 pb-4 border-b">
                 <h1 className="text-3xl font-extrabold text-indigo-700">📝 Task Management (Admin)</h1>
                 <Button className="bg-indigo-500 hover:bg-indigo-600 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
@@ -196,9 +198,7 @@ export default function TasksPage() {
                         Task Filters & Search
                     </div>
                     {/* Clear Button (Icon Only) */}
-                    <Button onClick={handleClearFilters} size="sm" className="bg-gray-500 hover:bg-gray-400">
-                        Clear Filters
-                    </Button>
+                    <Button variant="outline" onClick={handleClearFilters} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">Clear Filters</Button>
                 </div>
                 
                 {/* DÒNG 1: SEARCH VÀ DATE */}
@@ -275,12 +275,7 @@ export default function TasksPage() {
                         <option value="high">Priority: High</option>
                     </select>
                     
-                    <select className="border p-3 w-full mb-3 rounded focus:ring-green-500 focus:border-green-500"
-                        value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "todo" | "doing" | "done" })}>
-                        <option value="todo">Status: To Do</option>
-                        <option value="doing">Status: Doing</option>
-                        <option value="done">Status: Done</option>
-                    </select>
+                    {/* ===== TRƯỜNG STATUS ĐÃ BỊ XÓA KHỎI ĐÂY ===== */}
                     
                     <select className="border p-3 w-full mb-4 rounded focus:ring-green-500 focus:border-green-500"
                         value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })}>

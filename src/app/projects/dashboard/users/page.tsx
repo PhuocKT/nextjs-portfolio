@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { UserPlus, ArrowDownZA, ArrowUpZA, Filter, Trash2, Search, Edit, Save, X } from 'lucide-react'; 
 
 interface User {
@@ -40,23 +40,58 @@ export default function UsersPage() {
 
     useEffect(() => { fetchUsers(); }, []);
 
+    // SỬA ĐỔI: Thêm kiểm tra trùng lặp ở frontend
     async function handleSubmit() {
+        // 1. Trim và chuẩn hóa inputs
+        const trimmedName = form.name.trim();
+        const trimmedEmail = form.email.trim();
+
+        // 2. Kiểm tra định dạng và độ dài
+        if (!trimmedName) return toast.error("Name cannot be empty");
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(form.email)) return toast.error("Invalid email");
+        if (!emailRegex.test(trimmedEmail)) return toast.error("Invalid email format");
         if (form.password.length < 6) return toast.error("Password must be at least 6 characters"); 
 
+        // 3. (YÊU CẦU MỚI) Kiểm tra trùng lặp ở frontend (để báo lỗi nhanh)
+        const nameExists = allUsers.some(
+            (user) => user.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (nameExists) {
+            return toast.error("This user name is already taken.");
+        }
+
+        const emailExists = allUsers.some(
+            (user) => user.email.toLowerCase() === trimmedEmail.toLowerCase()
+        );
+        if (emailExists) {
+            return toast.error("This email is already registered.");
+        }
+
+        // 4. Nếu hợp lệ, tiến hành gọi API
         try {
+            // Gửi dữ liệu đã được trim
+            const payload = {
+                ...form,
+                name: trimmedName,
+                email: trimmedEmail
+            };
+
             const res = await fetch("/api/admin/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify(payload),
             });
             const json = await res.json();
+
+            // Check lỗi từ backend (lớp bảo vệ thứ 2, vd: "Email already exists")
             if (!res.ok) throw new Error(json.error);
+            
             toast.success("User added successfully");
             setForm({ name: "", email: "", password: "", role: "user" });
             fetchUsers();
         } catch (err) {
+            // Hiển thị lỗi (từ frontend validation hoặc backend)
             toast.error((err as Error).message || "Failed to add user");
         }
     }
@@ -161,6 +196,7 @@ export default function UsersPage() {
 
     return (
         <div className="p-8 min-h-screen bg-gray-50">
+            <Toaster position="top-right" toastOptions={{ style: { background: '#334155', color: '#fff' } }} />
             <div className="flex justify-between items-center mb-6 pb-4 border-b">
                 <h1 className="text-3xl font-extrabold text-indigo-700">👤 User Management (Admin)</h1>
                 <Button className="bg-indigo-500 hover:bg-indigo-600 text-white transition-colors" onClick={() => router.push("/projects/dashboard")}>⬅ Back to Dashboard</Button>
@@ -176,13 +212,7 @@ export default function UsersPage() {
                     </h2>
                     
                     {/* Nút Clear Filters - Đưa lên header */}
-                    <Button 
-                        onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }}
-                        // Sử dụng màu xám/trắng nhẹ, chỉ dùng icon nếu muốn rất gọn gàng
-                        size="sm" className="bg-gray-500 hover:bg-gray-400"
-                    >
-                        Clear Filters
-                    </Button>
+                    <Button variant="outline" onClick={() => { setFilterRole(""); setSortOrder("asc"); setSearchTerm(""); }} className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">Clear Filters</Button>
                     {/* Clear Button (Icon Only) */}
                     
                 </div>
@@ -218,18 +248,14 @@ export default function UsersPage() {
                     </div>
 
                     {/* 3. Sort by Name (1-2 cột) */}
-                    <Button 
+                    <Button variant="outline" 
                         onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                        // Sử dụng màu Blue chủ đạo, thêm hover nhẹ nhàng
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center justify-center text-sm col-span-1"
-                    >
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white hover:text-white transition-colors">
+                        Soft Filters
                         {sortOrder === 'asc' ? <ArrowDownZA className="w-4 h-4 mr-1" /> : <ArrowUpZA className="w-4 h-4 mr-1" />}
-                        Sort Name 
                     </Button>
                 </div>
             </Card>
-
-
 
             {/* BỐ CỤC 2 CỘT: ADD USER (1/3) & USER LIST (2/3) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
